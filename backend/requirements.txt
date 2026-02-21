@@ -1,0 +1,5 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-socketio==5.12.1
+pymodbus==3.7.4
+scapy==2.6.1

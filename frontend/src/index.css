@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  background-color: #030712;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}

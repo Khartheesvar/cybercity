@@ -1,0 +1,196 @@
+interface CityViewProps {
+  onSelectScenario: (id: string) => void;
+}
+
+const SCENARIOS = [
+  {
+    id: "dam",
+    title: "Dam & Water Treatment Facility",
+    subtitle: "Modbus/TCP — Operation Watergate",
+    description:
+      "Control a dam's sluice gates and water treatment plant. Exploit unprotected Modbus registers to manipulate water flow, chemical dosing, and pump controls.",
+    status: "active" as const,
+    gradient: "from-blue-900 via-cyan-900 to-emerald-900",
+    border: "border-blue-700",
+    icon: (
+      <svg viewBox="0 0 100 60" className="w-full h-full">
+        {/* Dam wall */}
+        <polygon points="20,15 80,15 85,55 15,55" fill="#374151" stroke="#6b7280" strokeWidth="1" />
+        {/* Water behind dam */}
+        <rect x="0" y="20" width="20" height="35" fill="#1e40af" opacity="0.6" rx="2" />
+        <rect x="0" y="25" width="18" height="30" fill="#2563eb" opacity="0.4" rx="2" />
+        {/* Water flow below */}
+        <path d="M 50 55 Q 55 48 60 55 Q 65 48 70 55 Q 75 48 80 55" fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.7" />
+        {/* Gate lines */}
+        <line x1="40" y1="35" x2="40" y2="50" stroke="#f59e0b" strokeWidth="1.5" />
+        <line x1="60" y1="35" x2="60" y2="50" stroke="#f59e0b" strokeWidth="1.5" />
+        {/* Treatment tanks */}
+        <circle cx="90" cy="40" r="6" fill="#065f46" stroke="#10b981" strokeWidth="1" />
+        <circle cx="90" cy="25" r="5" fill="#065f46" stroke="#10b981" strokeWidth="1" />
+        {/* Trees */}
+        <circle cx="8" cy="14" r="5" fill="#166534" />
+        <circle cx="14" cy="10" r="4" fill="#15803d" />
+        <circle cx="4" cy="12" r="3" fill="#14532d" />
+      </svg>
+    ),
+  },
+  {
+    id: "traffic",
+    title: "Traffic Light Control System",
+    subtitle: "NTCIP Protocol — Urban Gridlock",
+    description:
+      "Manipulate traffic signal controllers at a busy intersection. Cause gridlock, green-wave attacks, and emergency vehicle preemption abuse.",
+    status: "coming_soon" as const,
+    gradient: "from-gray-800 via-gray-800 to-gray-800",
+    border: "border-gray-700",
+    icon: (
+      <svg viewBox="0 0 100 60" className="w-full h-full" opacity="0.4">
+        {/* Road */}
+        <rect x="40" y="0" width="20" height="60" fill="#374151" />
+        <rect x="0" y="25" width="100" height="15" fill="#374151" />
+        {/* Road lines */}
+        <line x1="50" y1="0" x2="50" y2="22" stroke="#fbbf24" strokeWidth="1" strokeDasharray="4 3" />
+        <line x1="50" y1="42" x2="50" y2="60" stroke="#fbbf24" strokeWidth="1" strokeDasharray="4 3" />
+        {/* Traffic light pole */}
+        <rect x="65" y="8" width="3" height="16" fill="#6b7280" />
+        <rect x="62" y="4" width="9" height="14" rx="2" fill="#1f2937" stroke="#6b7280" strokeWidth="0.5" />
+        <circle cx="66.5" cy="7" r="1.8" fill="#ef4444" />
+        <circle cx="66.5" cy="11" r="1.8" fill="#374151" />
+        <circle cx="66.5" cy="15" r="1.8" fill="#374151" />
+      </svg>
+    ),
+  },
+  {
+    id: "powergrid",
+    title: "Power Grid Substation",
+    subtitle: "IEC 61850 — Blackout Scenario",
+    description:
+      "Take control of a regional power substation. Trip circuit breakers, overload transformers, and cascade failures across the grid.",
+    status: "coming_soon" as const,
+    gradient: "from-gray-800 via-gray-800 to-gray-800",
+    border: "border-gray-700",
+    icon: (
+      <svg viewBox="0 0 100 60" className="w-full h-full" opacity="0.4">
+        {/* Power lines */}
+        <line x1="10" y1="10" x2="10" y2="50" stroke="#6b7280" strokeWidth="2" />
+        <line x1="10" y1="10" x2="50" y2="10" stroke="#6b7280" strokeWidth="1.5" />
+        <line x1="50" y1="10" x2="50" y2="50" stroke="#6b7280" strokeWidth="2" />
+        <line x1="50" y1="10" x2="90" y2="10" stroke="#6b7280" strokeWidth="1.5" />
+        <line x1="90" y1="10" x2="90" y2="50" stroke="#6b7280" strokeWidth="2" />
+        {/* Transformer */}
+        <rect x="40" y="25" width="20" height="20" rx="2" fill="#1f2937" stroke="#6b7280" strokeWidth="1" />
+        <text x="50" y="38" textAnchor="middle" fill="#6b7280" fontSize="8" fontFamily="monospace">TX</text>
+        {/* Lightning bolt */}
+        <polygon points="48,15 52,15 50,22 54,22 46,32 50,25 46,25" fill="#f59e0b" opacity="0.5" />
+      </svg>
+    ),
+  },
+];
+
+export function CityView({ onSelectScenario }: CityViewProps) {
+  return (
+    <div className="min-h-screen bg-gray-950 text-white">
+      {/* Header */}
+      <div className="border-b border-gray-800 bg-gray-900">
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              CC
+            </div>
+            <div>
+              <h1 className="text-2xl font-mono font-bold text-gray-100">
+                CyberCity ICS
+              </h1>
+              <p className="text-sm font-mono text-gray-500">
+                Industrial Control Systems Cybersecurity Training
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* City Overview */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="mb-8">
+          <h2 className="text-lg font-mono font-bold text-gray-300 mb-1">
+            TRAINING SCENARIOS
+          </h2>
+          <p className="text-sm font-mono text-gray-600">
+            Select a facility to begin your ICS/OT security assessment
+          </p>
+        </div>
+
+        {/* Scenario Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {SCENARIOS.map((scenario) => {
+            const isActive = scenario.status === "active";
+            return (
+              <button
+                key={scenario.id}
+                onClick={() => isActive && onSelectScenario(scenario.id)}
+                disabled={!isActive}
+                className={`text-left rounded-xl border overflow-hidden transition-all duration-200 ${
+                  isActive
+                    ? `${scenario.border} hover:border-blue-500 hover:shadow-lg hover:shadow-blue-900/20 hover:-translate-y-1 cursor-pointer`
+                    : "border-gray-800 cursor-not-allowed opacity-60"
+                }`}
+              >
+                {/* Visual area */}
+                <div
+                  className={`h-32 bg-gradient-to-br ${scenario.gradient} p-4 relative`}
+                >
+                  <div className="absolute inset-0 p-4">
+                    {scenario.icon}
+                  </div>
+                  {/* Status badge */}
+                  <div className="absolute top-3 right-3">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        isActive
+                          ? "bg-green-900/80 text-green-300 border border-green-700"
+                          : "bg-gray-700/80 text-gray-400 border border-gray-600"
+                      }`}
+                    >
+                      {isActive ? "ACTIVE" : "COMING SOON"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Info area */}
+                <div className="bg-gray-900 p-4">
+                  <h3
+                    className={`font-mono font-bold text-sm mb-1 ${
+                      isActive ? "text-gray-200" : "text-gray-500"
+                    }`}
+                  >
+                    {scenario.title}
+                  </h3>
+                  <p
+                    className={`font-mono text-xs mb-3 ${
+                      isActive ? "text-cyan-400" : "text-gray-600"
+                    }`}
+                  >
+                    {scenario.subtitle}
+                  </p>
+                  <p
+                    className={`text-xs leading-relaxed ${
+                      isActive ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
+                    {scenario.description}
+                  </p>
+                  {isActive && (
+                    <div className="mt-4 flex items-center gap-1 text-xs font-mono text-blue-400">
+                      <span>Enter Scenario</span>
+                      <span>&rarr;</span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

