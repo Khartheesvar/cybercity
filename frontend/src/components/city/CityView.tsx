@@ -75,23 +75,44 @@ const SCENARIOS = [
     title: "Power Grid Substation",
     subtitle: "IEC 61850 — Blackout Scenario",
     description:
-      "Take control of a regional power substation. Trip circuit breakers, overload transformers, and cascade failures across the grid.",
-    status: "coming_soon" as const,
-    gradient: "from-gray-800 via-gray-800 to-gray-800",
-    border: "border-gray-700",
+      "Take control of a 230/115kV regional substation. Trip circuit breakers, overload transformers, disable protection relays, and execute the Industroyer cascade blackout pattern.",
+    status: "active" as const,
+    gradient: "from-yellow-900 via-amber-900 to-orange-900",
+    border: "border-yellow-700",
     icon: (
-      <svg viewBox="0 0 100 60" className="w-full h-full" opacity="0.4">
-        {/* Power lines */}
-        <line x1="10" y1="10" x2="10" y2="50" stroke="#6b7280" strokeWidth="2" />
-        <line x1="10" y1="10" x2="50" y2="10" stroke="#6b7280" strokeWidth="1.5" />
-        <line x1="50" y1="10" x2="50" y2="50" stroke="#6b7280" strokeWidth="2" />
-        <line x1="50" y1="10" x2="90" y2="10" stroke="#6b7280" strokeWidth="1.5" />
-        <line x1="90" y1="10" x2="90" y2="50" stroke="#6b7280" strokeWidth="2" />
-        {/* Transformer */}
-        <rect x="40" y="25" width="20" height="20" rx="2" fill="#1f2937" stroke="#6b7280" strokeWidth="1" />
-        <text x="50" y="38" textAnchor="middle" fill="#6b7280" fontSize="8" fontFamily="monospace">TX</text>
-        {/* Lightning bolt */}
-        <polygon points="48,15 52,15 50,22 54,22 46,32 50,25 46,25" fill="#f59e0b" opacity="0.5" />
+      <svg viewBox="0 0 100 60" className="w-full h-full">
+        {/* HV Bus */}
+        <rect x="5" y="14" width="90" height="4" rx="2" fill="#f59e0b" opacity="0.9" />
+        {/* LV Bus */}
+        <rect x="10" y="44" width="80" height="3" rx="1" fill="#60a5fa" opacity="0.8" />
+        {/* Source 1 line */}
+        <line x1="20" y1="4" x2="20" y2="14" stroke="#22c55e" strokeWidth="1.5" />
+        <rect x="16" y="4" width="8" height="6" rx="1" fill="#166534" stroke="#22c55e" strokeWidth="0.8" />
+        {/* Source 2 line */}
+        <line x1="80" y1="4" x2="80" y2="14" stroke="#22c55e" strokeWidth="1.5" />
+        <rect x="76" y="4" width="8" height="6" rx="1" fill="#166534" stroke="#22c55e" strokeWidth="0.8" />
+        {/* TX1 */}
+        <line x1="35" y1="18" x2="35" y2="25" stroke="#f59e0b" strokeWidth="1.5" />
+        <circle cx="35" cy="28" r="5" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.9" />
+        <circle cx="35" cy="37" r="5" fill="none" stroke="#60a5fa" strokeWidth="1.5" opacity="0.9" />
+        <line x1="35" y1="42" x2="35" y2="47" stroke="#60a5fa" strokeWidth="1.5" />
+        {/* TX2 */}
+        <line x1="65" y1="18" x2="65" y2="25" stroke="#f59e0b" strokeWidth="1.5" />
+        <circle cx="65" cy="28" r="5" fill="none" stroke="#f59e0b" strokeWidth="1.5" opacity="0.9" />
+        <circle cx="65" cy="37" r="5" fill="none" stroke="#60a5fa" strokeWidth="1.5" opacity="0.9" />
+        <line x1="65" y1="42" x2="65" y2="47" stroke="#60a5fa" strokeWidth="1.5" />
+        {/* Feeders */}
+        <line x1="22" y1="47" x2="22" y2="56" stroke="#22c55e" strokeWidth="1.2" />
+        <line x1="50" y1="47" x2="50" y2="56" stroke="#22c55e" strokeWidth="1.2" />
+        <line x1="78" y1="47" x2="78" y2="56" stroke="#22c55e" strokeWidth="1.2" />
+        {/* CB symbols */}
+        <rect x="31" y="19" width="8" height="6" rx="1" fill="#374151" stroke="#f59e0b" strokeWidth="0.8" />
+        <rect x="61" y="19" width="8" height="6" rx="1" fill="#374151" stroke="#f59e0b" strokeWidth="0.8" />
+        <rect x="18" y="48" width="8" height="5" rx="1" fill="#374151" stroke="#60a5fa" strokeWidth="0.8" />
+        <rect x="46" y="48" width="8" height="5" rx="1" fill="#374151" stroke="#60a5fa" strokeWidth="0.8" />
+        <rect x="74" y="48" width="8" height="5" rx="1" fill="#374151" stroke="#60a5fa" strokeWidth="0.8" />
+        {/* Lightning flash */}
+        <polygon points="50,8 54,8 51,14 55,14 48,22 52,16 48,16" fill="#fbbf24" opacity="0.85" />
       </svg>
     ),
   },

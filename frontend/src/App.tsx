@@ -7,11 +7,15 @@ import { AttackConsole } from "./components/attack/AttackConsole";
 import { IntersectionView } from "./components/traffic/IntersectionView";
 import { TrafficControlRoom } from "./components/traffic/TrafficControlRoom";
 import { TrafficLabMonitor } from "./components/traffic/TrafficLabMonitor";
+import { SubstationView } from "./components/grid/SubstationView";
+import { GridControlRoom } from "./components/grid/GridControlRoom";
+import { GridLabMonitor } from "./components/grid/GridLabMonitor";
 import { CityView } from "./components/city/CityView";
 
 type DamView_ = "dam" | "treatment" | "controlroom" | "attack";
 type TrafficView = "intersection" | "controlroom" | "lab";
-type Screen = "city" | "dam" | "traffic";
+type GridView = "substation" | "controlroom" | "lab";
+type Screen = "city" | "dam" | "traffic" | "powergrid";
 
 const DAM_NAV: { id: DamView_; label: string; color: string }[] = [
   { id: "dam", label: "Dam Overview", color: "text-blue-400" },
@@ -24,6 +28,12 @@ const TRAFFIC_NAV: { id: TrafficView; label: string; color: string }[] = [
   { id: "intersection", label: "Intersection", color: "text-amber-400" },
   { id: "controlroom", label: "Control Room", color: "text-green-400" },
   { id: "lab", label: "Lab Monitor", color: "text-red-400" },
+];
+
+const GRID_NAV: { id: GridView; label: string; color: string }[] = [
+  { id: "substation", label: "Substation SLD", color: "text-yellow-400" },
+  { id: "controlroom", label: "Control Room", color: "text-green-400" },
+  { id: "lab", label: "Attack Lab", color: "text-red-400" },
 ];
 
 // Error boundary to catch rendering crashes
@@ -64,6 +74,7 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("city");
   const [damView, setDamView] = useState<DamView_>("dam");
   const [trafficView, setTrafficView] = useState<TrafficView>("intersection");
+  const [gridView, setGridView] = useState<GridView>("substation");
   const { displayed, actual, connected, sendCommand } = useProcessData();
 
   // ─── City Overview ──────────────────────────────────────────
@@ -76,12 +87,13 @@ function App() {
   }
 
   // ─── Scenario Shell (shared nav bar) ─────────────────────────
-  const isDam = currentScreen === "dam";
-  const isTraffic = currentScreen === "traffic";
+  const isDam      = currentScreen === "dam";
+  const isTraffic  = currentScreen === "traffic";
+  const isGrid     = currentScreen === "powergrid";
 
-  const scenarioLabel = isDam ? "HydraGuard" : "Traffic Controller";
-  const scenarioIcon = isDam ? "HG" : "TC";
-  const scenarioBg = isDam ? "bg-blue-600" : "bg-amber-600";
+  const scenarioLabel = isDam ? "HydraGuard" : isTraffic ? "Traffic Controller" : "Northgate Substation";
+  const scenarioIcon  = isDam ? "HG" : isTraffic ? "TC" : "PS";
+  const scenarioBg    = isDam ? "bg-blue-600" : isTraffic ? "bg-amber-600" : "bg-yellow-600";
 
   return (
     <ErrorBoundary name="ScenarioShell">
@@ -133,6 +145,20 @@ function App() {
                   onClick={() => setTrafficView(item.id)}
                   className={`px-3 py-1.5 rounded font-mono text-xs transition-colors ${
                     trafficView === item.id
+                      ? `bg-gray-800 ${item.color} border border-gray-700`
+                      : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            {isGrid &&
+              GRID_NAV.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setGridView(item.id)}
+                  className={`px-3 py-1.5 rounded font-mono text-xs transition-colors ${
+                    gridView === item.id
                       ? `bg-gray-800 ${item.color} border border-gray-700`
                       : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
                   }`}
@@ -197,6 +223,27 @@ function App() {
             <div style={{ display: trafficView === "lab" ? "block" : "none" }}>
               <ErrorBoundary name="TrafficLabMonitor">
                 <TrafficLabMonitor displayed={displayed} actual={actual} />
+              </ErrorBoundary>
+            </div>
+          </>
+        )}
+
+        {/* Power Grid Scenario Views */}
+        {isGrid && (
+          <>
+            <div style={{ display: gridView === "substation" ? "block" : "none" }}>
+              <ErrorBoundary name="SubstationView">
+                <SubstationView grid={displayed.grid} />
+              </ErrorBoundary>
+            </div>
+            <div style={{ display: gridView === "controlroom" ? "block" : "none" }}>
+              <ErrorBoundary name="GridControlRoom">
+                <GridControlRoom state={displayed} sendCommand={sendCommand} />
+              </ErrorBoundary>
+            </div>
+            <div style={{ display: gridView === "lab" ? "block" : "none" }}>
+              <ErrorBoundary name="GridLabMonitor">
+                <GridLabMonitor displayed={displayed} actual={actual} />
               </ErrorBoundary>
             </div>
           </>

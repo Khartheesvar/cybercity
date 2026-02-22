@@ -56,11 +56,63 @@ export interface TrafficState {
   cycle_count: number;
 }
 
+/** Power Grid Substation state */
+export interface GridState {
+  // Circuit breakers (7 total: CB1-CB7)
+  cb_states: boolean[];
+
+  // Transformers
+  tx1_load_pct: number;
+  tx2_load_pct: number;
+  tx1_temp: number;
+  tx2_temp: number;
+  tx1_tripped: boolean;
+  tx2_tripped: boolean;
+
+  // Bus measurements
+  hv_voltage: number;
+  lv_voltage: number;
+  frequency: number;
+  active_power: number;
+  reactive_power: number;
+  power_factor: number;
+
+  // Topology
+  source1_connected: boolean;
+  source2_connected: boolean;
+  feeder_a_live: boolean;
+  feeder_b_live: boolean;
+  feeder_c_live: boolean;
+
+  // Protection relays (all attackable)
+  protection_enabled: boolean;
+  diff_prot_enabled: boolean;
+  overcurrent_enabled: boolean;
+  underfreq_enabled: boolean;
+  autorecloser_enabled: boolean;
+
+  // Alarms
+  freq_alarm: boolean;
+  freq_trip: boolean;
+  voltage_alarm: boolean;
+  tx1_overload_alarm: boolean;
+  tx2_overload_alarm: boolean;
+  tx1_thermal_trip: boolean;
+  tx2_thermal_trip: boolean;
+  overcurrent_alarm: boolean;
+  blackout: boolean;
+  cascade_active: boolean;
+  grid_stress: number;
+
+  events: string[];
+}
+
 /** Full process state from backend */
 export interface ProcessState {
   dam: DamState;
   plant: PlantState;
   traffic: TrafficState;
+  grid: GridState;
   tick: number;
   uptime: number;
 }

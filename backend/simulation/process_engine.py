@@ -9,6 +9,7 @@ import time
 from simulation.dam import DamSimulation
 from simulation.treatment_plant import TreatmentPlantSimulation
 from simulation.traffic_intersection import TrafficIntersectionSimulation
+from simulation.power_grid import PowerGridSimulation
 
 
 class ProcessEngine:
@@ -18,6 +19,7 @@ class ProcessEngine:
         self.dam = DamSimulation()
         self.plant = TreatmentPlantSimulation()
         self.traffic = TrafficIntersectionSimulation()
+        self.grid = PowerGridSimulation()
         self.running = False
         self.tick_count = 0
         self.start_time = None
@@ -27,6 +29,7 @@ class ProcessEngine:
         self.dam.reset()
         self.plant.reset()
         self.traffic.reset()
+        self.grid.reset()
         self.tick_count = 0
         self.start_time = time.time()
 
@@ -46,6 +49,9 @@ class ProcessEngine:
         # Traffic intersection simulation step
         self.traffic.tick(dt)
 
+        # Power grid simulation step
+        self.grid.tick(dt)
+
         self.tick_count += 1
 
     def get_actual_state(self) -> dict:
@@ -54,6 +60,7 @@ class ProcessEngine:
             "dam": self.dam.get_state(),
             "plant": self.plant.get_state(),
             "traffic": self.traffic.get_state(),
+            "grid": self.grid.get_state(),
             "tick": self.tick_count,
             "uptime": round(time.time() - self.start_time, 1) if self.start_time else 0,
         }
