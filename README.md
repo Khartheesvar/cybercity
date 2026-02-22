@@ -10,7 +10,7 @@ A scenario-based training lab where students learn to assess and exploit real-wo
 |---|----------|----------|------|--------|
 | 1 | **HydraGuard** — Dam & Water Treatment Plant | Modbus/TCP | 5020 | Active |
 | 2 | **Traffic Controller** — 4-Way Intersection | SNMP (NTCIP) | 5021 | Active |
-| 3 | Power Grid Substation | IEC 61850 | — | Coming Soon |
+| 3 | Power Grid Substation | IEC 61850 MMS | 5022 | Active |
 
 ### Scenario 1: HydraGuard (Dam & Water Treatment)
 
@@ -83,14 +83,17 @@ FastAPI + Socket.IO (localhost:8000)
     |         Dam & Treatment Plant simulation
     |
     +---> SNMP Agent (localhost:5021/udp)     <-- Scenario 2 attacks
-              Traffic Intersection simulation
+    |         Traffic Intersection simulation
+    |
+    +---> IEC 61850 MMS Server (localhost:5022) <-- Scenario 3 attacks
+              Power Grid Substation simulation
 ```
 
 ## Tech Stack
 
 - **Frontend:** React, TypeScript, Vite, Konva.js, Recharts, Tailwind CSS
 - **Backend:** Python, FastAPI, pymodbus, pysnmp, python-socketio
-- **Protocols:** Modbus/TCP, SNMP v2c (intentionally insecure for training)
+- **Protocols:** Modbus/TCP, SNMP v2c, IEC 61850 MMS (intentionally insecure for training)
 
 ## Ports
 
@@ -100,3 +103,4 @@ FastAPI + Socket.IO (localhost:8000)
 | 8000 | TCP | Backend API + WebSocket |
 | 5020 | TCP | Modbus/TCP (Scenario 1) |
 | 5021 | UDP | SNMP (Scenario 2) |
+| 5022 | TCP | IEC 61850 MMS (Scenario 3) |
