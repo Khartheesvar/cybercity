@@ -33,7 +33,7 @@ const TRAFFIC_NAV: { id: TrafficView; label: string; color: string }[] = [
 const GRID_NAV: { id: GridView; label: string; color: string }[] = [
   { id: "substation", label: "Substation SLD", color: "text-yellow-400" },
   { id: "controlroom", label: "Control Room", color: "text-green-400" },
-  { id: "lab", label: "Attack Lab", color: "text-red-400" },
+  { id: "lab", label: "Lab Monitor", color: "text-red-400" },
 ];
 
 // Error boundary to catch rendering crashes

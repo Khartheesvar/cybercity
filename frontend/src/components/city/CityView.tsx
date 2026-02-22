@@ -80,7 +80,7 @@ const SCENARIOS = [
     gradient: "from-yellow-900 via-amber-900 to-orange-900",
     border: "border-yellow-700",
     icon: (
-      <svg viewBox="0 0 100 60" className="w-full h-full">
+      <svg viewBox="-5 -10 110 80" className="w-full h-full">
         {/* HV Bus */}
         <rect x="5" y="14" width="90" height="4" rx="2" fill="#f59e0b" opacity="0.9" />
         {/* LV Bus */}

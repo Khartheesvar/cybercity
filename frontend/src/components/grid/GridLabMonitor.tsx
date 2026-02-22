@@ -1,9 +1,10 @@
 /**
- * GridLabMonitor — Attack Lab for Power Grid Substation (IEC 61850)
+ * GridLabMonitor — Lab Monitor for Power Grid Substation (IEC 61850)
  * 4-phase attack scenario inspired by Ukraine 2015/2016 + Industroyer/Crashoverride malware
  */
 
 import { useState } from "react";
+import { API_URL } from "../../socket";
 import type { ProcessState } from "../../types/process";
 
 interface Props {
@@ -509,7 +510,6 @@ export function GridLabMonitor({ displayed, actual }: Props) {
   const cb = grid.cb_states || new Array(7).fill(true);
   const allCbsOpen = cb.every(c => !c);
 
-  // Attack detection
   const isUnderAttack =
     !cb.every(Boolean) ||
     !grid.protection_enabled ||
@@ -523,72 +523,217 @@ export function GridLabMonitor({ displayed, actual }: Props) {
   const cbNames = ["Line 1 (Gen)", "Line 2 (Grid)", "TX1 Primary", "TX2 Primary",
                    "Feeder A (Ind)", "Feeder B (Res)", "Feeder C (Crit)"];
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-200 font-mono p-3">
+  const resetSystem = async () => {
+    await fetch(`${API_URL}/api/reset`, { method: "POST" });
+  };
 
+  return (
+    <div className="bg-gray-950 text-white p-4 h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h1 className="text-sm font-bold text-gray-300">
-            NORTHGATE SUBSTATION — IEC 61850 ATTACK LAB
+          <h1 className="text-xl font-mono font-bold text-amber-400">
+            LAB MONITOR
           </h1>
-          <p className="text-xs text-gray-600 mt-0.5">
-            Inspired by Industroyer/Crashoverride · Ukraine Power Grid 2016
+          <p className="text-sm font-mono text-gray-500">
+            Northgate Substation — Attack via IEC 61850 MMS, observe impact here
           </p>
         </div>
-        <div className={`px-3 py-1.5 rounded border text-xs font-bold ${
-          isUnderAttack
-            ? "bg-red-900/60 border-red-700 text-red-300 animate-pulse"
-            : "bg-green-900/30 border-green-800 text-green-400"
-        }`}>
-          {isUnderAttack ? "ATTACK DETECTED" : "GRID NOMINAL"}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowObjectMap(!showObjectMap)}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded font-mono text-xs border border-gray-700"
+          >
+            {showObjectMap ? "HIDE" : "SHOW"} IEC OBJECT MAP
+          </button>
+          <button
+            onClick={resetSystem}
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded font-mono text-xs border border-gray-700"
+          >
+            RESET SYSTEM
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-3">
-
-        {/* ── Left: Mission selector + live status ──────────────── */}
-        <div className="col-span-2 flex flex-col gap-3">
-
-          {/* Mission tabs */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-            {MISSIONS.map((m, i) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedMission(i)}
-                className={`w-full text-left p-2.5 border-b border-gray-800 last:border-0
-                  transition-colors text-xs ${
-                  selectedMission === i
-                    ? "bg-gray-800 border-l-2 border-l-blue-500"
-                    : "hover:bg-gray-800/50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className={`font-bold ${selectedMission === i ? "text-gray-200" : "text-gray-500"}`}>
-                    Phase {m.phase}: {m.title}
-                  </span>
-                  <span className={`px-1.5 py-0.5 rounded border text-[9px] ${DIFF_COLORS[m.difficulty]}`}>
-                    {m.difficulty}
-                  </span>
-                </div>
-              </button>
-            ))}
+      {/* IEC Object Map (toggleable) */}
+      {showObjectMap && (
+        <div className="bg-gray-900 rounded-lg p-3 border border-gray-800 mb-4">
+          <h3 className="text-xs font-mono text-cyan-400 mb-2 font-bold">
+            IEC 61850 OBJECT REFERENCES — Northgate Substation IED
+          </h3>
+          <div className="flex gap-2 mb-2 text-[10px] font-mono text-gray-500">
+            <span>Protocol: <span className="text-cyan-400">MMS (ISO 9506)</span></span>
+            <span>|</span>
+            <span>Port: <span className="text-cyan-400">TCP 5022</span></span>
+            <span>|</span>
+            <span>Auth: <span className="text-red-400">None</span></span>
           </div>
+          <table className="w-full text-xs font-mono">
+            <thead>
+              <tr className="text-gray-500 border-b border-gray-800">
+                <th className="text-left p-1">Object Reference</th>
+                <th className="text-left p-1">FC</th>
+                <th className="text-left p-1">Access</th>
+                <th className="text-left p-1">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["XCBR1–7.Pos.stVal",      "ST", "R", "CB1–7 position status"],
+                ["XCBR1–7.Pos.Oper.ctlVal", "CO", "W", "ATTACKABLE — CB1–7 operate command"],
+                ["MMXU1.Hz.mag.f",          "MX", "R", "System frequency (Hz)"],
+                ["MMXU1.TotW.mag.f",        "MX", "R", "Active power (MW)"],
+                ["MMXU2.PhV.phsA.mag.f",    "MX", "R", "HV bus voltage (kV)"],
+                ["MMXU3.PhV.phsA.mag.f",    "MX", "R", "LV bus voltage (kV)"],
+                ["ATCC1.TrCurr.mag.f",      "MX", "R", "TX1 loading %"],
+                ["ATCC2.TrCurr.mag.f",      "MX", "R", "TX2 loading %"],
+                ["ATCC1.TrTmp.mag.f",       "MX", "R", "TX1 winding temperature °C"],
+                ["ATCC2.TrTmp.mag.f",       "MX", "R", "TX2 winding temperature °C"],
+                ["PROT1.Beh.stVal",         "ST", "W", "ATTACKABLE — Master protection relay"],
+                ["DFPT1.Beh.stVal",         "ST", "W", "ATTACKABLE — 87T differential relay"],
+                ["OCPT1.Beh.stVal",         "ST", "W", "ATTACKABLE — 51 overcurrent relay"],
+                ["UFPT1.Beh.stVal",         "ST", "W", "ATTACKABLE — 81L under-frequency relay"],
+                ["RREC1.Beh.stVal",         "ST", "W", "ATTACKABLE — 79 auto-recloser"],
+                ["CSWI1.Pos.stVal",         "ST", "R", "Blackout status"],
+                ["CSWI1.GridStress.f",      "MX", "R", "Grid stress %"],
+              ].map(([ref, fc, rw, desc]) => (
+                <tr
+                  key={ref}
+                  className={`border-b border-gray-800/30 ${rw === "W" ? "text-red-300" : "text-gray-300"}`}
+                >
+                  <td className="p-1 text-cyan-400">{ref}</td>
+                  <td className="p-1 text-gray-500">{fc}</td>
+                  <td className="p-1">
+                    <span className={`px-1 rounded ${rw === "W" ? "bg-red-900 text-red-300" : "bg-gray-800 text-gray-400"}`}>
+                      {rw}
+                    </span>
+                  </td>
+                  <td className="p-1 text-gray-500 text-[10px]">{desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="text-[10px] text-red-400 mt-2">
+            Red rows = writable (attackable) — no authentication required
+          </p>
+        </div>
+      )}
 
-          {/* Live grid status */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-3">
-            <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-2">
-              Live Grid State
+      {/* Mission selector */}
+      <div className="flex gap-2 mb-4">
+        {MISSIONS.map((m, i) => (
+          <button
+            key={m.id}
+            onClick={() => setSelectedMission(i)}
+            className={`px-3 py-2 rounded font-mono text-xs border ${
+              selectedMission === i
+                ? "bg-amber-900 border-amber-600 text-amber-200"
+                : "bg-gray-900 border-gray-700 text-gray-400 hover:border-gray-500"
+            }`}
+          >
+            Phase {i + 1}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {/* Left: Mission briefing + commands */}
+        <div className="col-span-2 space-y-3">
+          {/* Mission briefing */}
+          <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
+            <div className="flex justify-between items-start mb-3">
+              <h2 className="font-mono text-sm font-bold text-gray-200">
+                Phase {mission.phase}: {mission.title}
+              </h2>
+              <span className={`text-xs font-mono px-2 py-1 rounded border ${DIFF_COLORS[mission.difficulty]}`}>
+                {mission.difficulty}
+              </span>
             </div>
 
-            {/* Frequency indicator */}
+            <div className="mb-3">
+              <h3 className="text-xs font-mono text-amber-400 mb-1">OBJECTIVE</h3>
+              <p className="text-xs text-gray-300">{mission.objective}</p>
+            </div>
+
+            <div className="mb-3">
+              <h3 className="text-xs font-mono text-gray-500 mb-1">BACKGROUND</h3>
+              <p className="text-xs text-gray-400 italic whitespace-pre-line">{mission.background}</p>
+            </div>
+
+            <div className="mb-3">
+              <h3 className="text-xs font-mono text-green-400 mb-1">SUCCESS CONDITION</h3>
+              <p className="text-xs text-green-300">{mission.successCondition}</p>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-mono text-blue-400 mb-1">WHERE TO CHECK IMPACT</h3>
+              <ul className="text-xs text-gray-400 space-y-1">
+                {mission.impact.map((item, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-blue-500">-</span> {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Commands */}
+          <div className="bg-black rounded-lg border border-gray-800 overflow-hidden">
+            <div className="px-4 py-2 border-b border-gray-800">
+              <h3 className="text-xs font-mono text-green-400 font-bold">
+                COMMANDS — Run these in your terminal
+              </h3>
+            </div>
+            <div className="p-4 space-y-4">
+              {mission.steps.map((step, i) => (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-mono text-gray-400 font-bold">{step.label}</span>
+                    <CopyButton text={step.code} />
+                  </div>
+                  <pre className="text-xs font-mono text-green-400 overflow-x-auto whitespace-pre bg-gray-950/50 p-2 rounded">
+                    {step.code}
+                  </pre>
+                  {step.note && (
+                    <p className="text-[10px] font-mono text-blue-400 mt-1 pl-2 border-l border-blue-800">
+                      ℹ {step.note}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Live state */}
+        <div className="space-y-3">
+          {/* Attack detection */}
+          <div
+            className={`rounded-lg p-3 border font-mono text-xs text-center font-bold ${
+              isUnderAttack
+                ? "bg-red-900/30 border-red-600 text-red-300 animate-pulse"
+                : "bg-green-900/30 border-green-800 text-green-400"
+            }`}
+          >
+            {isUnderAttack
+              ? "ATTACK DETECTED — Abnormal values"
+              : "NO ATTACK — System normal"}
+          </div>
+
+          {/* Grid Status */}
+          <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
+            <h3 className="text-xs font-mono text-cyan-400 mb-2 font-bold">
+              GRID STATUS
+            </h3>
+
+            {/* Frequency */}
             <div className={`rounded p-2 mb-2 text-center border ${
               grid.frequency < 58.5 ? "border-red-700 bg-red-900/20" :
               grid.frequency < 59.5 ? "border-amber-700 bg-amber-900/10" :
               "border-green-800 bg-green-900/10"
             }`}>
-              <div className="text-[9px] text-gray-500 uppercase">Frequency</div>
-              <div className={`text-xl font-bold ${
+              <div className="text-[9px] text-gray-500 uppercase font-mono">Frequency</div>
+              <div className={`text-lg font-bold font-mono ${
                 grid.frequency < 58.5 ? "text-red-400 animate-pulse" :
                 grid.frequency < 59.5 ? "text-amber-400" : "text-green-400"
               }`}>
@@ -599,8 +744,8 @@ export function GridLabMonitor({ displayed, actual }: Props) {
             {/* CB states */}
             <div className="space-y-0.5 mb-2">
               {cbNames.map((name, i) => (
-                <div key={i} className="flex items-center justify-between text-[10px]">
-                  <span className="text-gray-600">CB{i + 1} {name}</span>
+                <div key={i} className="flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-gray-500">CB{i + 1}</span>
                   <span className={`font-bold ${cb[i] ? "text-green-500" : "text-red-400"}`}>
                     {cb[i] ? "■ CLOSED" : "□ OPEN"}
                   </span>
@@ -608,193 +753,74 @@ export function GridLabMonitor({ displayed, actual }: Props) {
               ))}
             </div>
 
-            {/* Protection */}
-            <div className="border-t border-gray-800 pt-2 space-y-0.5">
-              {[
-                { label: "Master Protection", v: grid.protection_enabled },
-                { label: "Differential (87T)", v: grid.diff_prot_enabled },
-                { label: "Overcurrent (51)",   v: grid.overcurrent_enabled },
-                { label: "Under-Freq (81L)",   v: grid.underfreq_enabled },
-                { label: "Auto-Recloser (79)", v: grid.autorecloser_enabled },
-              ].map(p => (
-                <div key={p.label} className="flex items-center justify-between text-[9px]">
-                  <span className="text-gray-600">{p.label}</span>
-                  <span className={`font-bold ${p.v ? "text-green-500" : "text-red-400 animate-pulse"}`}>
-                    {p.v ? "ON" : "OFF ⚠"}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Blackout indicator */}
-            {grid.blackout && (
-              <div className="mt-2 p-2 rounded bg-red-900/40 border border-red-700 text-center">
-                <div className="text-red-300 font-bold text-sm animate-pulse">BLACKOUT</div>
-                <div className="text-red-500 text-[9px]">190 MW supply lost</div>
-              </div>
-            )}
-
             {/* TX stats */}
-            <div className="border-t border-gray-800 pt-2 space-y-1 mt-1">
+            <div className="border-t border-gray-800 pt-2 space-y-1">
               {[
                 { label: "TX1", load: grid.tx1_load_pct, temp: grid.tx1_temp, tripped: grid.tx1_tripped },
                 { label: "TX2", load: grid.tx2_load_pct, temp: grid.tx2_temp, tripped: grid.tx2_tripped },
               ].map(tx => (
-                <div key={tx.label}
-                  className={`flex justify-between text-[9px] ${
-                    tx.tripped ? "text-red-400" :
-                    tx.load > 85 ? "text-amber-400" : "text-gray-500"
-                  }`}
-                >
-                  <span>{tx.label}</span>
-                  <span>{tx.tripped ? "TRIPPED" : `${tx.load.toFixed(0)}% · ${tx.temp.toFixed(0)}°C`}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Object map toggle */}
-          <button
-            onClick={() => setShowObjectMap(v => !v)}
-            className="w-full py-1.5 px-3 rounded border border-blue-900 text-blue-400
-              text-xs font-bold hover:bg-blue-900/20 transition-colors"
-          >
-            {showObjectMap ? "Hide" : "Show"} IEC 61850 Object Map
-          </button>
-
-          {showObjectMap && (
-            <div className="bg-gray-900 rounded-lg border border-gray-800 p-3 max-h-64 overflow-y-auto">
-              <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-2">
-                IEC 61850 Object References
-              </div>
-              <div className="space-y-0.5">
-                {[
-                  ["XCBR1–7.Pos.stVal",       "ST",  "R",  "CB1–7 status"],
-                  ["XCBR1–7.Pos.Oper.ctlVal",  "CO",  "W",  "CB1–7 control"],
-                  ["MMXU1.Hz.mag.f",           "MX",  "R",  "Frequency"],
-                  ["MMXU1.TotW.mag.f",         "MX",  "R",  "Active power (MW)"],
-                  ["MMXU2.PhV.phsA.mag.f",     "MX",  "R",  "230kV HV voltage"],
-                  ["MMXU3.PhV.phsA.mag.f",     "MX",  "R",  "115kV LV voltage"],
-                  ["ATCC1.TrCurr.mag.f",       "MX",  "R",  "TX1 loading %"],
-                  ["ATCC2.TrCurr.mag.f",       "MX",  "R",  "TX2 loading %"],
-                  ["ATCC1.TrTmp.mag.f",        "MX",  "R",  "TX1 temperature °C"],
-                  ["ATCC2.TrTmp.mag.f",        "MX",  "R",  "TX2 temperature °C"],
-                  ["PROT1.Beh.stVal",          "ST",  "W",  "Master protection ON/OFF"],
-                  ["DFPT1.Beh.stVal",          "ST",  "W",  "87T differential relay"],
-                  ["OCPT1.Beh.stVal",          "ST",  "W",  "51 overcurrent relay"],
-                  ["UFPT1.Beh.stVal",          "ST",  "W",  "81L UFLS relay"],
-                  ["RREC1.Beh.stVal",          "ST",  "W",  "79 auto-recloser"],
-                  ["CSWI1.Pos.stVal",          "ST",  "R",  "Blackout status"],
-                  ["CSWI1.GridStress.f",       "MX",  "R",  "Grid stress %"],
-                ].map(([ref, fc, rw, desc]) => (
-                  <div key={ref} className="flex items-center gap-1 text-[9px] border-b border-gray-800/50 py-0.5">
-                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                      rw === "W" ? "bg-red-500" : "bg-green-500"
-                    }`} />
-                    <span className="text-blue-400 w-44 flex-shrink-0 truncate">{ref}</span>
-                    <span className="text-gray-600 w-6">{fc}</span>
-                    <span className={`w-4 ${rw === "W" ? "text-red-400" : "text-green-500"}`}>{rw}</span>
-                    <span className="text-gray-500">{desc}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-2 pt-2 border-t border-gray-800 text-[9px]">
-                <span className="text-green-500 mr-2">● R</span><span className="text-gray-500 mr-4">Read-only</span>
-                <span className="text-red-500 mr-2">● W</span><span className="text-gray-500">Writable (attack target)</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Right: Mission detail + commands ──────────────────── */}
-        <div className="col-span-3 flex flex-col gap-3">
-
-          {/* Mission header */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-gray-500 text-[10px]">PHASE {mission.phase}</span>
-                  <span className={`px-2 py-0.5 rounded border text-[9px] font-bold ${DIFF_COLORS[mission.difficulty]}`}>
-                    {mission.difficulty}
+                <div key={tx.label} className="flex justify-between text-[10px] font-mono">
+                  <span className="text-gray-500">{tx.label}</span>
+                  <span className={tx.tripped ? "text-red-400 font-bold" : tx.load > 85 ? "text-amber-400" : "text-cyan-300"}>
+                    {tx.tripped ? "TRIPPED" : `${tx.load.toFixed(0)}% · ${tx.temp.toFixed(0)}°C`}
                   </span>
                 </div>
-                <h2 className="text-base font-bold text-gray-200">{mission.title}</h2>
-              </div>
-            </div>
-
-            <div className="text-xs text-blue-400 mb-2">
-              <span className="text-gray-600">Objective: </span>{mission.objective}
-            </div>
-
-            {/* Background */}
-            <div className="bg-gray-800/40 rounded p-3 text-[10px] text-gray-400 whitespace-pre-line leading-relaxed border-l-2 border-blue-800">
-              {mission.background}
-            </div>
-          </div>
-
-          {/* Attack steps */}
-          <div className="flex flex-col gap-2">
-            {mission.steps.map((step, i) => (
-              <div key={i} className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-2 bg-gray-800/50 border-b border-gray-700">
-                  <span className="text-xs font-bold text-gray-300">{step.label}</span>
-                  <CopyButton text={step.code} />
-                </div>
-                <pre className="text-[10px] text-green-400 p-3 overflow-x-auto leading-relaxed bg-gray-950/50">
-                  {step.code}
-                </pre>
-                {step.note && (
-                  <div className="px-3 py-1.5 bg-blue-900/10 border-t border-blue-900/30
-                    text-[10px] text-blue-400 border-l-2 border-l-blue-700">
-                    ℹ {step.note}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Success condition */}
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-3">
-            <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-2">
-              Success Condition
-            </div>
-            <div className="text-xs text-green-400 mb-3">{mission.successCondition}</div>
-            <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-2">
-              Where to Observe Impact
-            </div>
-            <ul className="space-y-1">
-              {mission.impact.map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-[10px] text-gray-400">
-                  <span className="text-blue-500 mt-0.5 flex-shrink-0">→</span>
-                  <span>{item}</span>
-                </li>
               ))}
-            </ul>
+            </div>
+
+            {grid.blackout && (
+              <div className="mt-2 p-2 rounded bg-red-900/40 border border-red-700 text-center">
+                <div className="text-red-300 font-bold text-xs animate-pulse font-mono">BLACKOUT</div>
+                <div className="text-red-500 text-[9px] font-mono">190 MW supply lost</div>
+              </div>
+            )}
           </div>
 
-          {/* Phase 4 success indicator */}
+          {/* Protection Relays */}
+          <div className="bg-gray-900 rounded-lg p-3 border border-red-900/30">
+            <h3 className="text-xs font-mono text-red-400 mb-2 font-bold">
+              PROTECTION RELAYS
+            </h3>
+            <div className="space-y-1.5 text-xs font-mono">
+              {[
+                { label: "Master Protection", val: grid.protection_enabled },
+                { label: "Differential (87T)", val: grid.diff_prot_enabled },
+                { label: "Overcurrent (51)", val: grid.overcurrent_enabled },
+                { label: "Under-Freq (81L)", val: grid.underfreq_enabled },
+                { label: "Auto-Recloser (79)", val: grid.autorecloser_enabled },
+              ].map(({ label, val }) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-gray-500">{label}</span>
+                  <span className={!val ? "text-red-400 font-bold" : "text-gray-300"}>
+                    {val ? "ON" : "OFF ⚠"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Phase 4: Industroyer progress */}
           {mission.id === "industroyer" && (
             <div className={`rounded-lg border p-3 ${
               allCbsOpen && grid.blackout && !grid.autorecloser_enabled
                 ? "border-red-700 bg-red-900/20"
                 : "border-gray-800 bg-gray-900"
             }`}>
-              <div className="text-[10px] text-gray-600 uppercase tracking-widest mb-2">
-                Industroyer Attack Progress
-              </div>
-              <div className="grid grid-cols-2 gap-1">
+              <h3 className="text-xs font-mono text-gray-500 mb-2 font-bold">
+                INDUSTROYER PROGRESS
+              </h3>
+              <div className="space-y-1">
                 {[
-                  { label: "Protection Disabled",  done: !grid.protection_enabled },
-                  { label: "Differential OFF",     done: !grid.diff_prot_enabled },
-                  { label: "Overcurrent OFF",      done: !grid.overcurrent_enabled },
-                  { label: "UFLS OFF",             done: !grid.underfreq_enabled },
-                  { label: "Auto-Recloser OFF",    done: !grid.autorecloser_enabled },
-                  { label: "All 7 CBs Open",       done: allCbsOpen },
-                  { label: "Grid Frequency < 58Hz",done: grid.frequency < 58 && grid.frequency > 0 },
-                  { label: "BLACKOUT Achieved",    done: grid.blackout },
+                  { label: "Protection Disabled", done: !grid.protection_enabled },
+                  { label: "Differential OFF",    done: !grid.diff_prot_enabled },
+                  { label: "Overcurrent OFF",     done: !grid.overcurrent_enabled },
+                  { label: "UFLS OFF",            done: !grid.underfreq_enabled },
+                  { label: "Auto-Recloser OFF",   done: !grid.autorecloser_enabled },
+                  { label: "All 7 CBs Open",      done: allCbsOpen },
+                  { label: "Freq < 58 Hz",        done: grid.frequency < 58 && grid.frequency > 0 },
+                  { label: "BLACKOUT Achieved",   done: grid.blackout },
                 ].map(item => (
-                  <div key={item.label} className="flex items-center gap-1.5 text-[9px]">
+                  <div key={item.label} className="flex items-center gap-1.5 text-[10px] font-mono">
                     <span className={item.done ? "text-green-500" : "text-gray-700"}>
                       {item.done ? "✓" : "○"}
                     </span>
@@ -803,12 +829,12 @@ export function GridLabMonitor({ displayed, actual }: Props) {
                 ))}
               </div>
               {allCbsOpen && grid.blackout && !grid.autorecloser_enabled && (
-                <div className="mt-3 p-2 rounded bg-red-900/40 border border-red-700 text-center">
-                  <div className="text-red-300 font-bold text-xs animate-pulse">
-                    ATTACK COMPLETE — INDUSTROYER PATTERN EXECUTED
+                <div className="mt-2 p-2 rounded bg-red-900/40 border border-red-700 text-center">
+                  <div className="text-red-300 font-bold text-[10px] animate-pulse font-mono">
+                    ATTACK COMPLETE — INDUSTROYER EXECUTED
                   </div>
-                  <div className="text-red-500 text-[9px] mt-1">
-                    Permanent blackout · Auto-recovery disabled · 190 MW lost
+                  <div className="text-red-500 text-[9px] font-mono mt-1">
+                    Permanent blackout · 190 MW lost
                   </div>
                 </div>
               )}
