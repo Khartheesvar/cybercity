@@ -1,5 +1,5 @@
 """
-Main process engine that orchestrates dam + treatment plant simulation.
+Main process engine that orchestrates all scenario simulations.
 Runs the simulation loop and provides a unified state interface.
 """
 
@@ -8,6 +8,7 @@ import time
 
 from simulation.dam import DamSimulation
 from simulation.treatment_plant import TreatmentPlantSimulation
+from simulation.traffic_intersection import TrafficIntersectionSimulation
 
 
 class ProcessEngine:
@@ -16,6 +17,7 @@ class ProcessEngine:
     def __init__(self):
         self.dam = DamSimulation()
         self.plant = TreatmentPlantSimulation()
+        self.traffic = TrafficIntersectionSimulation()
         self.running = False
         self.tick_count = 0
         self.start_time = None
@@ -24,6 +26,7 @@ class ProcessEngine:
         """Reset entire simulation to safe defaults."""
         self.dam.reset()
         self.plant.reset()
+        self.traffic.reset()
         self.tick_count = 0
         self.start_time = time.time()
 
@@ -40,6 +43,9 @@ class ProcessEngine:
         # Treatment plant simulation step
         self.plant.tick(dt)
 
+        # Traffic intersection simulation step
+        self.traffic.tick(dt)
+
         self.tick_count += 1
 
     def get_actual_state(self) -> dict:
@@ -47,6 +53,7 @@ class ProcessEngine:
         return {
             "dam": self.dam.get_state(),
             "plant": self.plant.get_state(),
+            "traffic": self.traffic.get_state(),
             "tick": self.tick_count,
             "uptime": round(time.time() - self.start_time, 1) if self.start_time else 0,
         }

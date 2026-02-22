@@ -32,10 +32,35 @@ export interface PlantState {
   stages: Record<string, StageStatus>;
 }
 
+/** Traffic intersection simulation state */
+export interface TrafficState {
+  current_phase: number;
+  phase_timer: number;
+  ns_green_time: number;
+  ew_green_time: number;
+  ns_light: "red" | "yellow" | "green";
+  ew_light: "red" | "yellow" | "green";
+  ns_pedestrian: "walk" | "stop";
+  ew_pedestrian: "walk" | "stop";
+  ns_queue: number;
+  ew_queue: number;
+  ns_wait_time: number;
+  ew_wait_time: number;
+  phase_hold: number;
+  preemption_active: number;
+  conflict_monitor_enabled: boolean;
+  flash_mode: boolean;
+  conflict_detected: boolean;
+  gridlock_level: number;
+  total_vehicles_passed: number;
+  cycle_count: number;
+}
+
 /** Full process state from backend */
 export interface ProcessState {
   dam: DamState;
   plant: PlantState;
+  traffic: TrafficState;
   tick: number;
   uptime: number;
 }

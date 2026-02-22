@@ -37,14 +37,14 @@ const SCENARIOS = [
   {
     id: "traffic",
     title: "Traffic Light Control System",
-    subtitle: "NTCIP Protocol — Urban Gridlock",
+    subtitle: "SNMP/NTCIP — Urban Gridlock",
     description:
-      "Manipulate traffic signal controllers at a busy intersection. Cause gridlock, green-wave attacks, and emergency vehicle preemption abuse.",
-    status: "coming_soon" as const,
-    gradient: "from-gray-800 via-gray-800 to-gray-800",
-    border: "border-gray-700",
+      "Exploit weak SNMP community strings to manipulate traffic signal controllers. Cause gridlock, abuse emergency preemption, and bypass conflict monitors.",
+    status: "active" as const,
+    gradient: "from-amber-900 via-orange-900 to-red-900",
+    border: "border-amber-700",
     icon: (
-      <svg viewBox="0 0 100 60" className="w-full h-full" opacity="0.4">
+      <svg viewBox="0 0 100 60" className="w-full h-full">
         {/* Road */}
         <rect x="40" y="0" width="20" height="60" fill="#374151" />
         <rect x="0" y="25" width="100" height="15" fill="#374151" />
@@ -55,8 +55,18 @@ const SCENARIOS = [
         <rect x="65" y="8" width="3" height="16" fill="#6b7280" />
         <rect x="62" y="4" width="9" height="14" rx="2" fill="#1f2937" stroke="#6b7280" strokeWidth="0.5" />
         <circle cx="66.5" cy="7" r="1.8" fill="#ef4444" />
-        <circle cx="66.5" cy="11" r="1.8" fill="#374151" />
-        <circle cx="66.5" cy="15" r="1.8" fill="#374151" />
+        <circle cx="66.5" cy="11" r="1.8" fill="#fbbf24" opacity="0.3" />
+        <circle cx="66.5" cy="15" r="1.8" fill="#22c55e" opacity="0.3" />
+        {/* Second traffic light */}
+        <rect x="30" y="42" width="3" height="12" fill="#6b7280" />
+        <rect x="27" y="42" width="9" height="14" rx="2" fill="#1f2937" stroke="#6b7280" strokeWidth="0.5" />
+        <circle cx="31.5" cy="45" r="1.8" fill="#ef4444" opacity="0.3" />
+        <circle cx="31.5" cy="49" r="1.8" fill="#fbbf24" opacity="0.3" />
+        <circle cx="31.5" cy="53" r="1.8" fill="#22c55e" />
+        {/* Cars */}
+        <rect x="44" y="2" width="4" height="6" rx="1" fill="#60a5fa" opacity="0.7" />
+        <rect x="44" y="10" width="4" height="6" rx="1" fill="#a78bfa" opacity="0.7" />
+        <rect x="10" y="29" width="6" height="4" rx="1" fill="#f97316" opacity="0.7" />
       </svg>
     ),
   },
@@ -99,10 +109,10 @@ export function CityView({ onSelectScenario }: CityViewProps) {
             </div>
             <div>
               <h1 className="text-2xl font-mono font-bold text-gray-100">
-                CyberCity ICS
+                CyberCity ICS/OT
               </h1>
               <p className="text-sm font-mono text-gray-500">
-                Industrial Control Systems Cybersecurity Training
+                Industrial Control Systems/Operational Technology Cybersecurity Training
               </p>
             </div>
           </div>

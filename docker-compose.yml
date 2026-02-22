@@ -3,7 +3,8 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
-      - "5020:5020"
+      - "5020:5020"        # Modbus/TCP (Scenario 1)
+      - "5021:5021/udp"    # SNMP (Scenario 2)
     environment:
       - PYTHONUNBUFFERED=1
     volumes:

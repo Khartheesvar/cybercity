@@ -1,6 +1,6 @@
 interface ValueDisplayProps {
   label: string;
-  value: number;
+  value: number | string;
   unit: string;
   decimals?: number;
   danger?: boolean;
@@ -19,13 +19,15 @@ export function ValueDisplay({
   if (danger) textColor = "text-red-500 animate-pulse";
   else if (warning) textColor = "text-yellow-400";
 
+  const display = typeof value === "number" ? value.toFixed(decimals) : value;
+
   return (
     <div className="bg-gray-800 rounded-lg p-3 border border-gray-700">
       <div className="text-xs text-gray-400 uppercase tracking-wider">
         {label}
       </div>
       <div className={`text-2xl font-mono font-bold ${textColor}`}>
-        {value.toFixed(decimals)}
+        {display}
         <span className="text-sm text-gray-500 ml-1">{unit}</span>
       </div>
     </div>

@@ -1,15 +1,15 @@
 #!/bin/bash
-# CyberCity ICS — Quick Setup Script for macOS
+# CyberCity ICS/OT — Quick Setup Script for macOS
 set -e
 
 echo "============================================"
-echo "  CyberCity ICS — Setup"
+echo "  CyberCity ICS/OT — Setup"
 echo "  ICS/OT Cybersecurity Training Platform"
 echo "============================================"
 echo ""
 
 # Check prerequisites
-echo "[1/5] Checking prerequisites..."
+echo "[1/6] Checking prerequisites..."
 
 if ! command -v node &> /dev/null; then
     echo "  Node.js not found. Install with: brew install node"
@@ -23,17 +23,26 @@ if ! command -v python3 &> /dev/null; then
 fi
 echo "  Python: $(python3 --version)"
 
+# Check for SNMP tools (needed for Scenario 2)
+if command -v snmpwalk &> /dev/null; then
+    echo "  SNMP tools: installed"
+else
+    echo "  SNMP tools: NOT FOUND (needed for Scenario 2)"
+    echo "    Install with: brew install net-snmp"
+    echo "    Continuing setup anyway..."
+fi
+
 echo ""
 
 # Install frontend dependencies
-echo "[2/5] Installing frontend dependencies..."
+echo "[2/6] Installing frontend dependencies..."
 cd "$(dirname "$0")/../frontend"
 npm install
 echo "  Frontend dependencies installed."
 echo ""
 
 # Set up Python virtual environment
-echo "[3/5] Setting up Python backend..."
+echo "[3/6] Setting up Python backend..."
 cd "$(dirname "$0")/../backend"
 if [ ! -d "venv" ]; then
     python3 -m venv venv
@@ -43,7 +52,7 @@ pip install -q -r requirements.txt
 echo "  Backend dependencies installed."
 echo ""
 
-echo "[4/5] Setup complete!"
+echo "[4/6] Setup complete!"
 echo ""
 echo "============================================"
 echo "  To start the lab, run these in separate terminals:"
@@ -60,7 +69,14 @@ echo ""
 echo "  Then open: http://localhost:3000"
 echo "============================================"
 echo ""
-echo "[5/5] Or use Docker Compose (from project root):"
+echo "[5/6] Or use Docker Compose (from project root):"
 echo "    docker-compose up --build"
 echo "    Then open: http://localhost:3000"
+echo "============================================"
+echo ""
+echo "[6/6] Services & Ports:"
+echo "    Frontend:   http://localhost:3000"
+echo "    Backend:    http://localhost:8000"
+echo "    Modbus/TCP: localhost:5020  (Scenario 1 — HydraGuard)"
+echo "    SNMP/UDP:   localhost:5021  (Scenario 2 — Traffic Controller)"
 echo "============================================"

@@ -1,33 +1,90 @@
-import { useState } from "react";
+import { useState, Component, type ReactNode, type ErrorInfo } from "react";
 import { useProcessData } from "./hooks/useProcessData";
 import { DamView } from "./components/dam/DamView";
 import { TreatmentView } from "./components/treatment/TreatmentView";
 import { ControlRoom } from "./components/controlroom/ControlRoom";
 import { AttackConsole } from "./components/attack/AttackConsole";
+import { IntersectionView } from "./components/traffic/IntersectionView";
+import { TrafficControlRoom } from "./components/traffic/TrafficControlRoom";
+import { TrafficLabMonitor } from "./components/traffic/TrafficLabMonitor";
 import { CityView } from "./components/city/CityView";
 
-type View = "dam" | "treatment" | "controlroom" | "attack";
-type Screen = "city" | "dam";
+type DamView_ = "dam" | "treatment" | "controlroom" | "attack";
+type TrafficView = "intersection" | "controlroom" | "lab";
+type Screen = "city" | "dam" | "traffic";
 
-const NAV_ITEMS: { id: View; label: string; color: string }[] = [
+const DAM_NAV: { id: DamView_; label: string; color: string }[] = [
   { id: "dam", label: "Dam Overview", color: "text-blue-400" },
   { id: "treatment", label: "Treatment Plant", color: "text-cyan-400" },
   { id: "controlroom", label: "Control Room", color: "text-green-400" },
   { id: "attack", label: "Lab Monitor", color: "text-red-400" },
 ];
 
+const TRAFFIC_NAV: { id: TrafficView; label: string; color: string }[] = [
+  { id: "intersection", label: "Intersection", color: "text-amber-400" },
+  { id: "controlroom", label: "Control Room", color: "text-green-400" },
+  { id: "lab", label: "Lab Monitor", color: "text-red-400" },
+];
+
+// Error boundary to catch rendering crashes
+class ErrorBoundary extends Component<
+  { children: ReactNode; name: string },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[ErrorBoundary:${this.props.name}]`, error, info);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="bg-red-900/30 border border-red-600 rounded p-4 m-4 font-mono text-sm">
+          <div className="text-red-400 font-bold mb-2">
+            Component Crash: {this.props.name}
+          </div>
+          <pre className="text-red-300 text-xs whitespace-pre-wrap">
+            {this.state.error.message}
+            {"\n"}
+            {this.state.error.stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("city");
-  const [activeView, setActiveView] = useState<View>("dam");
+  const [damView, setDamView] = useState<DamView_>("dam");
+  const [trafficView, setTrafficView] = useState<TrafficView>("intersection");
   const { displayed, actual, connected, sendCommand } = useProcessData();
 
   // ─── City Overview ──────────────────────────────────────────
   if (currentScreen === "city") {
-    return <CityView onSelectScenario={() => setCurrentScreen("dam")} />;
+    return (
+      <CityView
+        onSelectScenario={(id) => setCurrentScreen(id as Screen)}
+      />
+    );
   }
 
-  // ─── Dam Scenario (existing UI — unchanged) ─────────────────
+  // ─── Scenario Shell (shared nav bar) ─────────────────────────
+  const isDam = currentScreen === "dam";
+  const isTraffic = currentScreen === "traffic";
+
+  const scenarioLabel = isDam ? "HydraGuard" : "Traffic Controller";
+  const scenarioIcon = isDam ? "HG" : "TC";
+  const scenarioBg = isDam ? "bg-blue-600" : "bg-amber-600";
+
   return (
+    <ErrorBoundary name="ScenarioShell">
     <div className="min-h-screen bg-gray-950">
       {/* Navigation Bar */}
       <nav className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between">
@@ -43,29 +100,46 @@ function App() {
 
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-sm">
-              HG
+            <div
+              className={`w-8 h-8 ${scenarioBg} rounded flex items-center justify-center text-white font-bold text-sm`}
+            >
+              {scenarioIcon}
             </div>
             <span className="font-mono font-bold text-gray-200 text-sm">
-              HydraGuard
+              {scenarioLabel}
             </span>
           </div>
 
           {/* View tabs */}
           <div className="flex gap-1 ml-4">
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveView(item.id)}
-                className={`px-3 py-1.5 rounded font-mono text-xs transition-colors ${
-                  activeView === item.id
-                    ? `bg-gray-800 ${item.color} border border-gray-700`
-                    : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+            {isDam &&
+              DAM_NAV.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setDamView(item.id)}
+                  className={`px-3 py-1.5 rounded font-mono text-xs transition-colors ${
+                    damView === item.id
+                      ? `bg-gray-800 ${item.color} border border-gray-700`
+                      : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            {isTraffic &&
+              TRAFFIC_NAV.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setTrafficView(item.id)}
+                  className={`px-3 py-1.5 rounded font-mono text-xs transition-colors ${
+                    trafficView === item.id
+                      ? `bg-gray-800 ${item.color} border border-gray-700`
+                      : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
           </div>
         </div>
 
@@ -89,20 +163,47 @@ function App() {
 
       {/* Main Content — all views stay mounted so trend data accumulates */}
       <main className="p-2">
-        <div style={{ display: activeView === "dam" ? "block" : "none" }}>
-          <DamView dam={displayed.dam} />
-        </div>
-        <div style={{ display: activeView === "treatment" ? "block" : "none" }}>
-          <TreatmentView plant={displayed.plant} />
-        </div>
-        <div style={{ display: activeView === "controlroom" ? "block" : "none" }}>
-          <ControlRoom state={displayed} sendCommand={sendCommand} />
-        </div>
-        <div style={{ display: activeView === "attack" ? "block" : "none" }}>
-          <AttackConsole displayed={displayed} actual={actual} />
-        </div>
+        {/* Dam Scenario Views */}
+        {isDam && (
+          <>
+            <div style={{ display: damView === "dam" ? "block" : "none" }}>
+              <DamView dam={displayed.dam} />
+            </div>
+            <div style={{ display: damView === "treatment" ? "block" : "none" }}>
+              <TreatmentView plant={displayed.plant} />
+            </div>
+            <div style={{ display: damView === "controlroom" ? "block" : "none" }}>
+              <ControlRoom state={displayed} sendCommand={sendCommand} />
+            </div>
+            <div style={{ display: damView === "attack" ? "block" : "none" }}>
+              <AttackConsole displayed={displayed} actual={actual} />
+            </div>
+          </>
+        )}
+
+        {/* Traffic Scenario Views */}
+        {isTraffic && (
+          <>
+            <div style={{ display: trafficView === "intersection" ? "block" : "none" }}>
+              <ErrorBoundary name="IntersectionView">
+                <IntersectionView traffic={displayed.traffic} />
+              </ErrorBoundary>
+            </div>
+            <div style={{ display: trafficView === "controlroom" ? "block" : "none" }}>
+              <ErrorBoundary name="TrafficControlRoom">
+                <TrafficControlRoom state={displayed} sendCommand={sendCommand} />
+              </ErrorBoundary>
+            </div>
+            <div style={{ display: trafficView === "lab" ? "block" : "none" }}>
+              <ErrorBoundary name="TrafficLabMonitor">
+                <TrafficLabMonitor displayed={displayed} actual={actual} />
+              </ErrorBoundary>
+            </div>
+          </>
+        )}
       </main>
     </div>
+    </ErrorBoundary>
   );
 }
 

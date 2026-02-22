@@ -366,56 +366,25 @@ export function AttackConsole({ displayed, actual }: LabMonitorProps) {
               : "NO ATTACK — System normal"}
           </div>
 
-          {/* Operator View */}
+          {/* Facility Status */}
           <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
-            <h3 className="text-xs font-mono text-green-400 mb-2 font-bold">
-              OPERATOR VIEW
+            <h3 className="text-xs font-mono text-cyan-400 mb-2 font-bold">
+              FACILITY STATUS
             </h3>
             <div className="space-y-1.5 text-xs font-mono">
               {[
-                { label: "Water Level", val: displayed.dam.water_level, unit: "m" },
-                { label: "Gate Position", val: displayed.dam.gate_position, unit: "%" },
-                { label: "Chlorine", val: displayed.plant.chlorine_level, unit: "ppm" },
-                { label: "pH Level", val: displayed.plant.ph_level, unit: "" },
-                { label: "Pressure", val: displayed.plant.distribution_pressure, unit: "PSI" },
-                { label: "Tank Level", val: displayed.plant.tank_level, unit: "%" },
-              ].map(({ label, val, unit }) => (
+                { label: "Water Level", val: `${actual.dam.water_level.toFixed(1)} m`, warn: actual.dam.water_level > 80 || actual.dam.water_level < 25 },
+                { label: "Inflow", val: `${actual.dam.inflow_rate.toFixed(1)} m³/s` },
+                { label: "Outflow", val: `${actual.dam.outflow_rate.toFixed(1)} m³/s` },
+                { label: "Tank Level", val: `${actual.plant.tank_level.toFixed(1)}%`, warn: actual.plant.tank_level > 90 || actual.plant.tank_level < 10 },
+                { label: "Pressure", val: `${actual.plant.distribution_pressure.toFixed(1)} PSI`, warn: actual.plant.distribution_pressure < 45 },
+                { label: "pH Level", val: `${actual.plant.ph_level.toFixed(1)}`, warn: actual.plant.ph_level < 6.5 || actual.plant.ph_level > 8.5 },
+                { label: "Turbidity", val: `${actual.plant.turbidity.toFixed(1)} NTU`, warn: actual.plant.turbidity > 4 },
+              ].map(({ label, val, warn }) => (
                 <div key={label} className="flex justify-between">
                   <span className="text-gray-500">{label}</span>
-                  <span className="text-green-400">
-                    {val.toFixed(1)} {unit}
-                  </span>
-                </div>
-              ))}
-              <div className="flex justify-between border-t border-gray-800 pt-1 mt-1">
-                <span className="text-gray-500">Alarms</span>
-                <span className="text-green-400">
-                  {displayed.dam.high_level_alarm || displayed.plant.chemical_alarm
-                    ? "ACTIVE"
-                    : "NONE"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Actual State */}
-          <div className="bg-gray-900 rounded-lg p-3 border border-red-900/30">
-            <h3 className="text-xs font-mono text-red-400 mb-2 font-bold">
-              ACTUAL STATE (GROUND TRUTH)
-            </h3>
-            <div className="space-y-1.5 text-xs font-mono">
-              {[
-                { label: "Water Level", val: actual.dam.water_level, unit: "m", danger: actual.dam.water_level > 85 },
-                { label: "Gate Position", val: actual.dam.gate_position, unit: "%", danger: actual.dam.gate_position > 90 },
-                { label: "Chlorine", val: actual.plant.chlorine_level, unit: "ppm", danger: actual.plant.chlorine_level > 8 },
-                { label: "pH Level", val: actual.plant.ph_level, unit: "", danger: actual.plant.ph_level < 6.5 || actual.plant.ph_level > 8.5 },
-                { label: "Pressure", val: actual.plant.distribution_pressure, unit: "PSI", danger: actual.plant.distribution_pressure < 40 },
-                { label: "Tank Level", val: actual.plant.tank_level, unit: "%", danger: actual.plant.tank_level > 95 || actual.plant.tank_level < 5 },
-              ].map(({ label, val, unit, danger }) => (
-                <div key={label} className="flex justify-between">
-                  <span className="text-gray-500">{label}</span>
-                  <span className={danger ? "text-red-400 font-bold" : "text-gray-300"}>
-                    {val.toFixed(1)} {unit}
+                  <span className={warn ? "text-yellow-400" : "text-cyan-300"}>
+                    {val}
                   </span>
                 </div>
               ))}
@@ -424,8 +393,8 @@ export function AttackConsole({ displayed, actual }: LabMonitorProps) {
                 <span
                   className={
                     actual.dam.high_level_alarm || actual.plant.chemical_alarm
-                      ? "text-red-400 animate-pulse font-bold"
-                      : "text-gray-300"
+                      ? "text-yellow-400 animate-pulse font-bold"
+                      : "text-cyan-300"
                   }
                 >
                   {actual.dam.high_level_alarm || actual.plant.chemical_alarm
@@ -433,14 +402,33 @@ export function AttackConsole({ displayed, actual }: LabMonitorProps) {
                     : "NONE"}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Pumps</span>
-                <span className={!actual.plant.distribution_pump ? "text-red-400" : "text-gray-300"}>
-                  I:{actual.plant.intake_pump ? "ON" : "OFF"}{" "}
-                  C:{actual.plant.chemical_pump ? "ON" : "OFF"}{" "}
-                  D:{actual.plant.distribution_pump ? "ON" : "OFF"}
-                </span>
-              </div>
+            </div>
+          </div>
+
+          {/* Attack Parameters */}
+          <div className="bg-gray-900 rounded-lg p-3 border border-red-900/30">
+            <h3 className="text-xs font-mono text-red-400 mb-2 font-bold">
+              ATTACK PARAMETERS
+            </h3>
+            <div className="space-y-1.5 text-xs font-mono">
+              {[
+                { label: "Gate Position", val: `${actual.dam.gate_position.toFixed(1)}%`, danger: actual.dam.gate_position < 5 || actual.dam.gate_position > 90 },
+                { label: "Chlorine", val: `${actual.plant.chlorine_level.toFixed(1)} ppm`, danger: actual.plant.chlorine_level > 8 },
+                { label: "Intake Pump", val: actual.plant.intake_pump ? "ON" : "OFF", danger: !actual.plant.intake_pump },
+                { label: "Chemical Pump", val: actual.plant.chemical_pump ? "ON" : "OFF", danger: !actual.plant.chemical_pump },
+                { label: "Dist. Pump", val: actual.plant.distribution_pump ? "ON" : "OFF", danger: !actual.plant.distribution_pump },
+              ].map(({ label, val, danger }) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-gray-500">{label}</span>
+                  <span
+                    className={
+                      danger ? "text-red-400 font-bold" : "text-gray-300"
+                    }
+                  >
+                    {val}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

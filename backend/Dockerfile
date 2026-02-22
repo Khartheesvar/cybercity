@@ -2,11 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install SNMP tools for Scenario 2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    snmp \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000 5020
+# 8000 = FastAPI, 5020/tcp = Modbus, 5021/udp = SNMP
+EXPOSE 8000 5020 5021/udp
 
 CMD ["python", "main.py"]

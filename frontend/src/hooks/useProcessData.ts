@@ -38,9 +38,33 @@ const DEFAULT_PLANT: ProcessState["plant"] = {
   },
 };
 
+const DEFAULT_TRAFFIC: ProcessState["traffic"] = {
+  current_phase: 1,
+  phase_timer: 30,
+  ns_green_time: 30,
+  ew_green_time: 30,
+  ns_light: "green",
+  ew_light: "red",
+  ns_pedestrian: "walk",
+  ew_pedestrian: "stop",
+  ns_queue: 0,
+  ew_queue: 0,
+  ns_wait_time: 0,
+  ew_wait_time: 0,
+  phase_hold: 0,
+  preemption_active: 0,
+  conflict_monitor_enabled: true,
+  flash_mode: false,
+  conflict_detected: false,
+  gridlock_level: 0,
+  total_vehicles_passed: 0,
+  cycle_count: 0,
+};
+
 const DEFAULT_STATE: ProcessState = {
   dam: DEFAULT_DAM,
   plant: DEFAULT_PLANT,
+  traffic: DEFAULT_TRAFFIC,
   tick: 0,
   uptime: 0,
 };
@@ -60,8 +84,16 @@ export function useProcessData() {
     }
 
     function onProcessUpdate(data: ProcessUpdate) {
-      setDisplayed(data.displayed);
-      setActual(data.actual);
+      setDisplayed({
+        ...DEFAULT_STATE,
+        ...data.displayed,
+        traffic: { ...DEFAULT_TRAFFIC, ...data.displayed?.traffic },
+      });
+      setActual({
+        ...DEFAULT_STATE,
+        ...data.actual,
+        traffic: { ...DEFAULT_TRAFFIC, ...data.actual?.traffic },
+      });
     }
 
     socket.on("connect", onConnect);
