@@ -2,9 +2,10 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
-      - "5020:5020"        # Modbus/TCP (Scenario 1)
-      - "5021:5021/udp"    # SNMP (Scenario 2)
+      - "8000:8000"         # FastAPI + Socket.IO (WebSocket)
+      - "5020:5020"         # Modbus/TCP      — Scenario 1: HydraGuard
+      - "5021:5021/udp"     # SNMP v2c        — Scenario 2: MetroGrid Traffic
+      - "5022:5022"         # IEC 61850 MMS   — Scenario 3: Northgate Substation
     environment:
       - PYTHONUNBUFFERED=1
     volumes:
