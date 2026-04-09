@@ -1,23 +1,26 @@
-# CyberCity ICS/OT
+# 🏙️ CyberCity ICS/OT
 
 Industrial Control Systems / Operational Technology (ICS/OT) Cybersecurity Training Platform.
 
 A scenario-based training lab where students learn to assess and exploit real-world industrial control systems. Each scenario simulates a different critical infrastructure facility with live physics, real ICS/OT protocols, and visual feedback.
 
-## Scenarios
+![CyberCity ICS/OT Demo](assets/demo.gif)
+
+## 🎯 Scenarios
 
 | # | Facility | Protocol | Port | Status |
 |---|----------|----------|------|--------|
-| 1 | **HydraGuard** — Dam & Water Treatment Plant | **Modbus/TCP** | 5020 | ✅ Active |
-| 2 | **MetroGrid** — 4-Way Traffic Intersection | **SNMP v2c** (NTCIP) | 5021/udp | ✅ Active |
-| 3 | **Northgate Substation** — 230/115kV Power Grid | **IEC 61850 MMS** | 5022 | ✅ Active |
+| 1 | **HydraGuard**: Dam & Water Treatment Plant | **Modbus/TCP** | 5020 | ✅ Active |
+| 2 | **MetroGrid**: 4-Way Traffic Intersection | **SNMP v2c** (NTCIP) | 5021/udp | ✅ Active |
+| 3 | **Northgate Substation**: 230/115kV Power Grid | **IEC 61850 MMS** | 5022 | ✅ Active |
+| 4+ | **More scenarios in development** | | | 🔜 Coming Soon |
 
 ---
 
-### Scenario 1 — HydraGuard (Dam & Water Treatment)
+### 🌊 Scenario 1: HydraGuard (Dam & Water Treatment)
 **Protocol: Modbus/TCP** · Port 5020
 
-Modbus is the oldest and most widely deployed ICS protocol (Schneider Electric, 1979). It has **zero built-in authentication** — anyone who can reach port 502 can read or write any register. Inspired by real incidents: Bowman Avenue Dam breach (2013), Oldsmar FL water treatment (2021).
+Modbus is the oldest and most widely deployed ICS protocol (Schneider Electric, 1979). It has **zero built-in authentication**, anyone who can reach port 502 can read or write any register. Inspired by real incidents: Bowman Avenue Dam breach (2013), Oldsmar FL water treatment (2021).
 
 **What you can do:**
 - Read holding registers to map the entire physical process
@@ -26,32 +29,32 @@ Modbus is the oldest and most widely deployed ICS protocol (Schneider Electric, 
 - Kill pumps, force overflow, disable alarms
 
 **Attack phases:**
-1. **Reconnaissance** — `mbpoll` / `modpoll` to scan and enumerate registers
-2. **Eavesdropping** — Capture cleartext Modbus frames with Wireshark
-3. **Register Manipulation** — Direct coil/register writes to actuate physical devices
+1. **Reconnaissance**: `mbpoll` / `modpoll` to scan and enumerate registers
+2. **Eavesdropping**: Capture cleartext Modbus frames with Wireshark
+3. **Register Manipulation**: Direct coil/register writes to actuate physical devices
 
 ---
 
-### Scenario 2 — MetroGrid (4-Way Traffic Intersection)
+### 🚦 Scenario 2: MetroGrid (4-Way Traffic Intersection)
 **Protocol: SNMP v2c** (NTCIP 1202) · Port 5021/UDP
 
-SNMP (Simple Network Management Protocol) v2c uses plaintext **community strings** for auth — effectively a shared password sent in the clear. NTCIP 1202 is the US standard OID schema for traffic controllers. A 2014 University of Michigan study found ~100 real intersections exposed with default strings (`public` / `private`).
+SNMP (Simple Network Management Protocol) v2c uses plaintext **community strings** for auth, effectively a shared password sent in the clear. NTCIP 1202 is the US standard OID schema for traffic controllers. A 2014 University of Michigan study found ~100 real intersections exposed with default strings (`public` / `private`).
 
 **What you can do:**
 - Walk the OID tree to discover all controller variables
 - Modify phase timing to cause gridlock and queue starvation
 - Trigger Emergency Vehicle Preemption (EVP) to lock a direction green
-- Disable the Conflict Monitor — the safety relay that prevents opposing greens
+- Disable the Conflict Monitor, the safety relay that prevents opposing greens
 
 **Attack phases:**
-1. **Discovery & Enumeration** — `snmpwalk -v2c -c public` to map all OIDs
-2. **Timing Manipulation** — Write phase durations to disrupt traffic flow
-3. **Emergency Preemption Abuse** — Force EVP to pin one direction
-4. **Conflict Monitor Bypass** — Disable safety interlock, force simultaneous greens (mirrors TRISIS/Triton 2017 SIS attack pattern)
+1. **Discovery & Enumeration**: `snmpwalk -v2c -c public` to map all OIDs
+2. **Timing Manipulation**: Write phase durations to disrupt traffic flow
+3. **Emergency Preemption Abuse**: Force EVP to pin one direction
+4. **Conflict Monitor Bypass**: Disable safety interlock, force simultaneous greens (mirrors TRISIS/Triton 2017 SIS attack pattern)
 
 ---
 
-### Scenario 3 — Northgate Substation (230/115kV Power Grid)
+### ⚡ Scenario 3: Northgate Substation (230/115kV Power Grid)
 **Protocol: IEC 61850 MMS** · Port 5022
 
 IEC 61850 is the international standard for substation automation and protection relay communication. **MMS (Manufacturing Message Specification)** is the application-layer protocol used by Intelligent Electronic Devices (IEDs) to expose data objects using a strict logical node hierarchy (`LD/LN.DO.DA`). Most legacy IEDs have no authentication. This scenario mirrors the **Industroyer / Crashoverride** attack (Ukraine, December 2016) that caused a 1-hour blackout for 230,000 people.
@@ -63,23 +66,13 @@ IEC 61850 is the international standard for substation automation and protection
 - Trigger thermal overload cascade on TX2 (200MVA) once TX1 is isolated
 - Achieve total blackout: 190 MW lost across Industrial, Residential, and Critical zones
 
-**IEC 61850 object naming (examples):**
-| Object Reference | Description | Access |
-|------------------|-------------|--------|
-| `XCBR1.Pos.stVal` | CB1 position (open/closed) | Read |
-| `XCBR1.Pos.Oper.ctlVal` | CB1 operate command | **Write** |
-| `MMXU1.Hz.mag.f` | System frequency (Hz) | Read |
-| `ATCC1.TrTmp.mag.f` | TX1 winding temperature | Read |
-| `PROT1.Beh.stVal` | Master protection relay state | **Write** |
-| `RREC1.Beh.stVal` | Auto-recloser enable/disable | **Write** |
-
 **Attack phases:**
-1. **Recon** — `identify` + `get_name_list` to discover all logical nodes
-2. **Telemetry** — `read_dataset DS_FULL` to snapshot live measurements
-3. **Selective Tripping** — Trip individual CBs to isolate transformer feeders
-4. **Industroyer Pattern** — Disable all protection → rapid CB trip sequence → block auto-reclosure → permanent blackout
+1. **Recon**: `identify` + `get_name_list` to discover all logical nodes
+2. **Telemetry**: `read_dataset DS_FULL` to snapshot live measurements
+3. **Selective Tripping**: Trip individual CBs to isolate transformer feeders
+4. **Industroyer Pattern**: Disable all protection → rapid CB trip sequence → block auto-reclosure → permanent blackout
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -96,14 +89,14 @@ chmod +x scripts/setup.sh
 
 ### Run (two terminals)
 
-**Terminal 1 — Backend:**
+**Terminal 1 (Backend):**
 ```bash
 cd backend
 source venv/bin/activate
 python main.py
 ```
 
-**Terminal 2 — Frontend:**
+**Terminal 2 (Frontend):**
 ```bash
 cd frontend
 npm run dev
@@ -111,7 +104,7 @@ npm run dev
 
 Open **http://localhost:3000** in your browser.
 
-### Run with Docker (alternative)
+### 🐳 Run with Docker (alternative)
 
 ```bash
 docker-compose up --build
@@ -119,36 +112,29 @@ docker-compose up --build
 
 Open **http://localhost:3000**.
 
-## Architecture
+## 🏗️ Architecture
 
 ```
-Browser (localhost:3000)
-    | WebSocket (Socket.IO)
-    v
-FastAPI + Socket.IO (localhost:8000)
-    |
-    +---> Modbus TCP Server (localhost:5020)  <-- Scenario 1 attacks
-    |         Dam & Treatment Plant simulation
-    |
-    +---> SNMP Agent (localhost:5021/udp)     <-- Scenario 2 attacks
-    |         Traffic Intersection simulation
-    |
-    +---> IEC 61850 MMS Server (localhost:5022) <-- Scenario 3 attacks
-              Power Grid Substation simulation
+┌─────────────────────────────────────────────────────────┐
+│  🌐 Browser (localhost:3000)                            │
+│  React + Konva.js + Recharts                            │
+└────────────────────────┬────────────────────────────────┘
+                         │ WebSocket (Socket.IO)
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│  ⚙️  FastAPI + Socket.IO (localhost:8000)                │
+│  Physics Engine · Protocol Servers · Real-time State    │
+├─────────────────┬─────────────────┬─────────────────────┤
+│ 🌊 Modbus/TCP   │ 🚦 SNMP Agent   │ ⚡ IEC 61850 MMS   │
+│ Port 5020       │ Port 5021/udp   │ Port 5022           │
+│ Dam & Treatment │ Traffic Control │ Power Substation    │
+└─────────────────┴─────────────────┴─────────────────────┘
+        ▲                 ▲                  ▲
+        │                 │                  │
+   mbpoll/modpoll    snmpwalk/snmpset   IEC 61850 client
+   (Student attacks with standard ICS/OT tooling)
 ```
 
-## Tech Stack
+---
 
-- **Frontend:** React, TypeScript, Vite, Konva.js, Recharts, Tailwind CSS
-- **Backend:** Python, FastAPI, pymodbus, pysnmp, python-socketio
-- **Protocols:** Modbus/TCP, SNMP v2c, IEC 61850 MMS (intentionally insecure for training)
-
-## Ports
-
-| Port | Protocol | Service |
-|------|----------|---------|
-| 3000 | TCP | Frontend (Vite dev server) |
-| 8000 | TCP | Backend API + WebSocket |
-| 5020 | TCP | Modbus/TCP (Scenario 1) |
-| 5021 | UDP | SNMP (Scenario 2) |
-| 5022 | TCP | IEC 61850 MMS (Scenario 3) |
+*This project is under active development. New scenarios and features are being added regularly.*
