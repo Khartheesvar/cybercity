@@ -13,7 +13,7 @@ A scenario-based training lab where students learn to assess and exploit real-wo
 | 1 | **HydraGuard**: Dam & Water Treatment Plant | **Modbus/TCP** | 5020 | ✅ Active |
 | 2 | **MetroGrid**: 4-Way Traffic Intersection | **SNMP v2c** (NTCIP) | 5021/udp | ✅ Active |
 | 3 | **Northgate Substation**: 230/115kV Power Grid | **IEC 61850 MMS** | 5022 | ✅ Active |
-| 4+ | **More scenarios in development** | | | 🔜 Coming Soon |
+| 4+ | **More scenarios in development** | - | - | 🔜 Coming Soon |
 
 ---
 
