@@ -1,5 +1,19 @@
 # 🏙️ CyberCity ICS/OT
 
+![Node.js](https://img.shields.io/badge/Node.js-20+-339933?logo=nodedotjs&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![React](https://img.shields.io/badge/React-Konva%20%2B%20Recharts-61DAFB?logo=react&logoColor=black)
+![FastAPI](https://img.shields.io/badge/FastAPI-WebSocket-009688?logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+
+![Modbus](https://img.shields.io/badge/Protocol-Modbus%2FTCP-FF6B35)
+![SNMP](https://img.shields.io/badge/Protocol-SNMP%20v2c%20%28NTCIP%29-8B5CF6)
+![IEC 61850](https://img.shields.io/badge/Protocol-IEC%2061850%20MMS-0EA5E9)
+
+![Scenarios](https://img.shields.io/badge/Scenarios-3%20Active-22C55E)
+![License](https://img.shields.io/badge/License-Educational%20Use-F59E0B)
+![Status](https://img.shields.io/badge/Status-Active%20Development-blue)
+
 Industrial Control Systems / Operational Technology (ICS/OT) Cybersecurity Training Platform.
 
 A scenario-based training lab where students learn to assess and exploit real-world industrial control systems. Each scenario simulates a different critical infrastructure facility with live physics, real ICS/OT protocols, and visual feedback.
